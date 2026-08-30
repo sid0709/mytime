@@ -162,10 +162,13 @@ pub fn note_event(event: &InputMonitorEventDto) {
         if state.open_unix_sec == unix_sec {
             state.counts.add(event);
             if let Some(category) = ActionCategory::from_event(event.kind, event.action) {
-                state.symbols.push(Symbol {
-                    category,
-                    timestamp_ms: event.timestamp,
-                });
+                let symbol = match (category, event.x, event.y) {
+                    (ActionCategory::Move, Some(x), Some(y)) => {
+                        Symbol::moved(event.timestamp, x, y)
+                    }
+                    _ => Symbol::new(category, event.timestamp),
+                };
+                state.symbols.push(symbol);
             }
         }
     });
@@ -441,10 +444,7 @@ mod tests {
 
     fn seq(category: ActionCategory, n: usize, dt: i64) -> Vec<Symbol> {
         (0..n)
-            .map(|i| Symbol {
-                category,
-                timestamp_ms: i as i64 * dt,
-            })
+            .map(|i| Symbol::new(category, i as i64 * dt))
             .collect()
     }
 
@@ -460,10 +460,10 @@ mod tests {
             .map(|i| {
                 let mut x = (i as u32).wrapping_mul(0x9E37_79B9);
                 x ^= x >> 16;
-                Symbol {
-                    category: cats[(x as usize) % cats.len()],
-                    timestamp_ms: i as i64 * (17 + (i as i64 % 11) * 3),
-                }
+                Symbol::new(
+                    cats[(x as usize) % cats.len()],
+                    i as i64 * (17 + (i as i64 % 11) * 3),
+                )
             })
             .collect()
     }
@@ -490,9 +490,11 @@ mod tests {
     #[test]
     fn one_channel_irregular_is_not_snapped_to_100() {
         let symbols: Vec<Symbol> = (0..40)
-            .map(|i| Symbol {
-                category: ActionCategory::Key,
-                timestamp_ms: (0..i).map(|j| 20 + (j * 13) % 97).sum::<i64>(),
+            .map(|i| {
+                Symbol::new(
+                    ActionCategory::Key,
+                    (0..i).map(|j| 20 + (j * 13) % 97).sum::<i64>(),
+                )
             })
             .collect();
         let percent = second_percent(active(), &symbols);

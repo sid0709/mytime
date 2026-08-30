@@ -112,6 +112,7 @@ fn push_symbol(
     category: ActionCategory,
     timestamp_ms: i64,
     minute: Option<u32>,
+    pos: Option<(i32, i32)>,
 ) {
     let Some(minute) = minute else {
         return;
@@ -126,6 +127,11 @@ fn push_symbol(
     state.symbols.push(Symbol {
         category,
         timestamp_ms,
+        pos: if category == ActionCategory::Move {
+            pos
+        } else {
+            None
+        },
     });
 }
 
@@ -400,7 +406,7 @@ fn transition_snapshot(
             queue_if_persistable(state, date, current, close_at);
             state.current = Some(start_session(state, next, now, persist_sessions));
             if persist_sessions {
-                push_symbol(state, ActionCategory::FocusSwitch, now, minute_of_day(now));
+                push_symbol(state, ActionCategory::FocusSwitch, now, minute_of_day(now), None);
             }
         }
         (Some(current), None) => {
@@ -446,7 +452,11 @@ pub fn record_input_event(event: &InputMonitorEventDto) {
     }
 
     if let Some(category) = ActionCategory::from_event(event.kind, event.action) {
-        push_symbol(&mut state, category, now, minute);
+        let pos = match (event.x, event.y) {
+            (Some(x), Some(y)) => Some((x, y)),
+            _ => None,
+        };
+        push_symbol(&mut state, category, now, minute, pos);
     }
 
     match (event.kind, event.action) {

@@ -89,8 +89,21 @@ Diagnostics on `InputMonitorStatusDto`: `remoteSessionActive`, `rejectedInjected
 - Action symbols: `{Key, Click, Move, Scroll, FocusSwitch}` (presses and wheels; releases are not symbols).
 - **Diversity:** LZ76 entropy rate `c(n)·log_5(n)/n` of that sequence (`A = 5` action types), so mixed work can approach 1.
 - **Timing:** Bandt–Pompe permutation entropy (`n=3`) on the dominant class if it is ≥70% of the minute and there are enough intervals; otherwise timing = 1.
-- **Quality:** `0.65 * diversity + 0.35 * timing`.
+- **Type-sequence quality:** `0.65 * diversity + 0.35 * timing`.
 - Sparse minutes (&lt;12 symbols) omit quality; scoring treats `null` as **1.0** so we do not punish light real work.
+
+**Mouse-movement dynamics.** When a window is almost all `Move` symbols (`move_fraction ≥ 0.70`) the type sequence carries no information, so quality comes from the *geometry* of the cursor path instead (`Move` symbols now carry `(x, y)`; needs ≥ 11 positioned samples):
+
+```
+Q_mouse = V^0.35 · B^0.25 · T^0.25 · S^0.15      (weighted geometric mean, each term in [ε, 1])
+
+V  vigor       1 / (1 + (v0 / p75_speed)^k)        slow jiggle → 0     (v0 = 0.08 px/ms, k = 1.6)
+B  burstiness  1 − exp(−λ · Var(ln step_speed))    constant speed → 0  (λ = 1, speed floored at 0.005 px/ms)
+T  turning     1 − ‖Σ w·e^{iΔθ}‖ / Σ w             constant curvature → 0   (w = √(dᵢ·dᵢ₋₁), Δθ = heading change)
+S  spread      tanh(radius_of_gyration / 60px)     tiny area → 0
+```
+
+The geometric mean means any single tell (slow, flat-speed, predictable curvature, tiny area) collapses the score. Straight and circular auto-movers score ~0 despite covering ground (B, T = 0). Smooth slow small-area movement ≈ 0.03; point-to-point web browsing ≈ 0.64; gaming-style motion ≈ 0.88. `Q_mouse` is cross-faded into the type-sequence quality by `smoothstep(0.70, 0.92, move_fraction)`, so a mixed minute is unaffected. Mixed keyboard/scroll/type-switching behaviour keeps the old formula.
 
 A ring buffer of 2048 symbols overwrites oldest. The 30-second grace bump that marks a later minute active is **not** fed as extra mouse-move symbols.
 
