@@ -9,6 +9,7 @@ import {
   Clock,
   LayoutDashboard,
   HelpCircle,
+  Newspaper,
   ScrollText,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -23,6 +24,7 @@ import { DetectionBoard } from "./components/DetectionBoard";
 import { FocusCorrelator } from "./components/FocusCorrelator";
 import { TimelineEditor } from "./components/timeline/TimelineEditor";
 import { SunburstChart } from "./components/reports/SunburstChart";
+import { ChangelogPage } from "./components/ChangelogPage";
 import { HelpPage } from "./components/HelpPage";
 import { LogsPage } from "./components/LogsPage";
 import { UpdateAvailableModal } from "./components/UpdateAvailableModal";
@@ -45,6 +47,7 @@ const PAGE_CONFIG: Record<string, { title: string; subtitle: string; icon: typeo
   dashboard: { title: "Dashboard", subtitle: "System overview & productivity intelligence", icon: LayoutDashboard, accentColor: "text-primary" },
   activity: { title: "Activity Tracker", subtitle: "Input monitoring & application usage analytics", icon: Activity, accentColor: "text-chart-2" },
   logs: { title: "System Logs", subtitle: "Live backend diagnostics & event stream", icon: ScrollText, accentColor: "text-chart-4" },
+  changelog: { title: "Changes", subtitle: "What shipped in each minor version", icon: Newspaper, accentColor: "text-chart-4" },
   help: { title: "Help & Documentation", subtitle: "Guides, shortcuts, and system reference", icon: HelpCircle, accentColor: "text-chart-5" },
 };
 
@@ -238,6 +241,7 @@ export default function App() {
             />
           )}
           {activeTab === "logs" && <LogsPage />}
+          {activeTab === "changelog" && <ChangelogPage />}
           {activeTab === "help" && <HelpPage />}
         </main>
       </div>

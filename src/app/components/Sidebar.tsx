@@ -3,6 +3,7 @@ import {
   Activity,
   LayoutDashboard,
   HelpCircle,
+  Newspaper,
   ScrollText,
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
@@ -16,6 +17,7 @@ const navItems = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, color: "#6366f1" },
   { id: "activity", label: "Activity", icon: Activity, color: "#22d3ee" },
   { id: "logs", label: "Logs", icon: ScrollText, color: "#2dd4bf" },
+  { id: "changelog", label: "Changes", icon: Newspaper, color: "#a78bfa" },
   { id: "help", label: "Help", icon: HelpCircle, color: "#f97316" },
 ];
 

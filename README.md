@@ -2,6 +2,8 @@
 
 MyTime is a local-first desktop activity tracker built with Tauri, Rust, React, and SQLite. It records physical keyboard and mouse activity, tracks foreground application usage, and turns that local data into timelines, summaries, and productivity reports.
 
+Setup (install, develop, release): [`docs/setup.md`](docs/setup.md).
+
 ## Features
 
 ### Hardware-only input activity
@@ -124,63 +126,7 @@ mytime/
 
 ## Development
 
-### Prerequisites
-
-- Node.js and npm
-- A Rust toolchain
-- Platform build tools required by Tauri
-
-### Commands
-
-```bash
-npm install
-npm run tauri dev
-npm run build
-cargo test --manifest-path src-tauri/Cargo.toml
-```
-
-Build the packaged desktop application with:
-
-```bash
-npm run tauri build
-```
-
-### macOS install (no Apple Developer account)
-
-Ad-hoc signing cannot skip Gatekeeper by itself. The one-line installer downloads the latest release, copies MyTime into Applications, and clears the quarantine flag:
-
-```bash
-curl -fsSL https://github.com/sid0709/mytime/releases/latest/download/install-macos.sh | bash
-```
-
-You still need to allow **Input Monitoring** on first launch. After that, in-app updates strip quarantine before restarting.
-
-To package a DMG locally:
-
-```bash
-npm run build:mac-dmg
-```
-
-To re-sign an existing release build without rebuilding:
-
-```bash
-SKIP_BUILD=1 npm run build:mac-dmg
-```
-
-Ad-hoc signing is not Apple notarization. Without a Developer ID (~$99/year), a browser-downloaded DMG still needs the installer script or right-click → Open.
-
-### Windows install
-
-Download the NSIS `.exe` from GitHub Releases. SmartScreen warnings go away only when CI Authenticode-signs the installer. Add these GitHub Actions secrets:
-
-- `WINDOWS_CERTIFICATE` — base64-encoded `.pfx` (OV or EV code-signing certificate)
-- `WINDOWS_CERTIFICATE_PASSWORD` — PFX password
-
-```powershell
-[Convert]::ToBase64String([IO.File]::ReadAllBytes("certificate.pfx"))
-```
-
-An EV certificate typically avoids SmartScreen immediately. An OV certificate still warns until the signed binary builds reputation. Unsigned builds still install; Windows shows "Windows protected your PC."
+Install, local commands, and GitHub Release secrets: [`docs/setup.md`](docs/setup.md).
 
 ## Privacy and security boundaries
 

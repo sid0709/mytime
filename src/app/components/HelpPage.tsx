@@ -116,12 +116,17 @@ const helpData: HelpSection[] = [
       {
         title: "Sidebar Navigation",
         description:
-          "An animated sidebar with 4 navigable views: **Dashboard**, **Activity Tracker**, **System Logs**, and **Help & Documentation**. Features micro-animations on hover and selection including scale springs, glow effects, and sliding active indicators. On mobile (`<lg`), the sidebar collapses into a fixed bottom navigation bar with compact icons.",
+          "An animated sidebar with 5 navigable views: **Dashboard**, **Activity Tracker**, **System Logs**, **Changes**, and **Help & Documentation**. Features micro-animations on hover and selection including scale springs, glow effects, and sliding active indicators. On mobile (`<lg`), the sidebar collapses into a fixed bottom navigation bar with compact icons.",
       },
       {
         title: "Glass-Effect Top Bar",
         description:
           "A frosted-glass header bar with `backdrop-blur-sm` and a semi-transparent background. It displays the current page icon, title, subtitle, last-updated time, and theme toggle.",
+      },
+      {
+        title: "Changes",
+        description:
+          "The **Changes** view lists every shipped minor version from `CHANGELOG.md` (newest first). Policy: `.cursor/VERSIONING.md`. Any change that ships in a release bumps MINOR and adds a bullet here in the same change set.",
       },
       {
         title: "Automatic updates",

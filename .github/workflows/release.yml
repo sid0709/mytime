@@ -7,6 +7,9 @@ name: Release App
 # macOS: ad-hoc signed (no Apple Developer account). Users install with:
 #   curl -fsSL https://github.com/sid0709/mytime/releases/latest/download/install-macos.sh | bash
 #
+# Updater signatures: set TAURI_SIGNING_PRIVATE_KEY (full minisign key file).
+# If it is unset, installers still publish; in-app updates will not be signed.
+#
 # Windows SmartScreen: set repo secrets WINDOWS_CERTIFICATE (base64 PFX) and
 # WINDOWS_CERTIFICATE_PASSWORD. An unsigned build still ships if those are empty.
 on:
@@ -59,12 +62,30 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Enable updater artifacts when signing key is present
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const path = "src-tauri/tauri.ci.conf.json";
+            const config = JSON.parse(fs.readFileSync(path, "utf8"));
+            config.bundle = config.bundle || {};
+            if (process.env.TAURI_SIGNING_PRIVATE_KEY) {
+              config.bundle.createUpdaterArtifacts = true;
+              console.log("updater artifacts enabled");
+            } else {
+              delete config.bundle.createUpdaterArtifacts;
+              console.log("updater artifacts skipped (set TAURI_SIGNING_PRIVATE_KEY to enable in-app updates)");
+            }
+            fs.writeFileSync(path, JSON.stringify(config, null, 2) + "\n");
+          '
+
       - name: Build and publish
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
           APPLE_SIGNING_IDENTITY: ${{ matrix.platform == 'macos-latest' && '-' || '' }}
           WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
           WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}

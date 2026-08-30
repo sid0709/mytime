@@ -1,0 +1,16 @@
+---
+description: Bump the minor version and update CHANGELOG.md for every shipped change.
+alwaysApply: true
+---
+
+# Versioning
+
+Policy: `.cursor/VERSIONING.md`.
+
+When the change ships in the app or a GitHub Release:
+
+1. Bump **MINOR**, reset PATCH (`1.2.0` → `1.3.0`) in `src-tauri/tauri.conf.json`, `package.json`, and `src-tauri/Cargo.toml`.
+2. Add the same version at the top of `CHANGELOG.md` with user-facing bullets.
+3. One bump per change set, not per file.
+
+Skip the bump only for docs / `.cursor` edits that do not ship. Use MAJOR only for breaking/incompatible releases. Do not use PATCH for product work.
