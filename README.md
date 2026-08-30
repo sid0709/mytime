@@ -145,21 +145,42 @@ Build the packaged desktop application with:
 npm run tauri build
 ```
 
-### macOS signed DMG
+### macOS install (no Apple Developer account)
 
-The repository includes an ad-hoc signing and packaging script for development distribution without an Apple Developer account:
+Ad-hoc signing cannot skip Gatekeeper by itself. The one-line installer downloads the latest release, copies MyTime into Applications, and clears the quarantine flag:
+
+```bash
+curl -fsSL https://github.com/sid0709/mytime/releases/latest/download/install-macos.sh | bash
+```
+
+You still need to allow **Input Monitoring** on first launch. After that, in-app updates strip quarantine before restarting.
+
+To package a DMG locally:
 
 ```bash
 npm run build:mac-dmg
 ```
 
-It produces `MyTime-signed.dmg` in the repository root. To re-sign an existing release build without rebuilding:
+To re-sign an existing release build without rebuilding:
 
 ```bash
 SKIP_BUILD=1 npm run build:mac-dmg
 ```
 
-Ad-hoc signing is not notarization. Gatekeeper may require the user to approve the application on first launch.
+Ad-hoc signing is not Apple notarization. Without a Developer ID (~$99/year), a browser-downloaded DMG still needs the installer script or right-click → Open.
+
+### Windows install
+
+Download the NSIS `.exe` from GitHub Releases. SmartScreen warnings go away only when CI Authenticode-signs the installer. Add these GitHub Actions secrets:
+
+- `WINDOWS_CERTIFICATE` — base64-encoded `.pfx` (OV or EV code-signing certificate)
+- `WINDOWS_CERTIFICATE_PASSWORD` — PFX password
+
+```powershell
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("certificate.pfx"))
+```
+
+An EV certificate typically avoids SmartScreen immediately. An OV certificate still warns until the signed binary builds reputation. Unsigned builds still install; Windows shows "Windows protected your PC."
 
 ## Privacy and security boundaries
 

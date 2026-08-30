@@ -126,7 +126,7 @@ const helpData: HelpSection[] = [
       {
         title: "Automatic updates",
         description:
-          "Packaged builds check GitHub Releases a few seconds after launch, then about every six hours. When a newer version is published, a modal offers **Update now** or **Later**. Update now downloads the signed installer, verifies it, and restarts MyTime. Later hides the prompt until the next launch. Development (`tauri dev`) does not check for updates.\n\nmacOS builds are not Apple-notarized. If Gatekeeper blocks a newly installed update, right-click the app and choose **Open**.",
+          "Packaged builds check GitHub Releases a few seconds after launch, then about every six hours. When a newer version is published, a modal offers **Update now** or **Later**. Update now downloads the signed installer, verifies it, strips macOS Gatekeeper quarantine, and restarts MyTime. Later hides the prompt until the next launch. Development (`tauri dev`) does not check for updates.\n\n**macOS (no Apple Developer account):** install with `curl -fsSL https://github.com/sid0709/mytime/releases/latest/download/install-macos.sh | bash`. That copies the app and clears quarantine. You still need to allow **Input Monitoring** in System Settings. In-app updates clear quarantine automatically so the next launch should not say the app is damaged.",
       },
       {
         title: "PremiumDateRangePicker",

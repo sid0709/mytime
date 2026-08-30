@@ -32,6 +32,10 @@
     "macOS": {
       "entitlements": "entitlements.plist"
     },
+    "windows": {
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "http://timestamp.digicert.com"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -44,7 +48,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU3QzAyREE0REMzQzU1QTkKUldTcFZUemNwQzNBNXdTa3p2dGtyR0V0WWJ5RWpvSlBpZ2RDdk8yT05hZXZBaWNiOGhTWDk4MVgK",
       "endpoints": [
-        "https://github.com/omnimuh730/mytime/releases/latest/download/latest.json"
+        "https://github.com/sid0709/mytime/releases/latest/download/latest.json"
       ],
       "windows": {
         "installMode": "passive"

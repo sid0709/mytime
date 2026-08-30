@@ -3,6 +3,12 @@ name: Release App
 # Publishes a GitHub Release for the version in src-tauri/tauri.conf.json.
 # Bump that version (and ideally package.json / Cargo.toml) before merging
 # to main so existing installs are offered an in-app update.
+#
+# macOS: ad-hoc signed (no Apple Developer account). Users install with:
+#   curl -fsSL https://github.com/sid0709/mytime/releases/latest/download/install-macos.sh | bash
+#
+# Windows SmartScreen: set repo secrets WINDOWS_CERTIFICATE (base64 PFX) and
+# WINDOWS_CERTIFICATE_PASSWORD. An unsigned build still ships if those are empty.
 on:
   workflow_dispatch:
   push:
@@ -59,13 +65,44 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+          APPLE_SIGNING_IDENTITY: ${{ matrix.platform == 'macos-latest' && '-' || '' }}
+          WINDOWS_CERTIFICATE: ${{ secrets.WINDOWS_CERTIFICATE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
         with:
           tagName: v__VERSION__
           releaseName: MyTime v__VERSION__
-          releaseBody: See the assets attached to this release to install MyTime.
+          releaseBody: |
+            ## macOS
+            Install without Gatekeeper "damaged app" errors:
+
+            ```
+            curl -fsSL https://github.com/${{ github.repository }}/releases/latest/download/install-macos.sh | bash
+            ```
+
+            Then allow Input Monitoring when MyTime asks.
+
+            ## Windows
+            Download the NSIS installer (`.exe`). SmartScreen stays quiet only when the build is Authenticode-signed with `WINDOWS_CERTIFICATE`.
           releaseDraft: false
           prerelease: false
           generateReleaseNotes: true
           includeUpdaterJson: true
           updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
+
+  attach-macos-installer:
+    needs: publish-tauri
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Upload install-macos.sh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="$(jq -r .version src-tauri/tauri.conf.json)"
+          chmod +x scripts/install-macos.sh
+          gh release upload "v${VERSION}" scripts/install-macos.sh --clobber

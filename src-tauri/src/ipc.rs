@@ -206,3 +206,9 @@ pub fn get_quality_day() -> Vec<u8> {
 pub fn refresh_quality_live() -> QualityLiveDto {
     quality_live::refresh()
 }
+
+/// Strip Gatekeeper quarantine after an in-app update replaces the macOS bundle.
+#[tauri::command]
+pub fn clear_app_quarantine() -> Result<(), String> {
+    crate::macos_quarantine::clear_current_app_quarantine()
+}

@@ -11,6 +11,7 @@ mod input_complexity;
 mod input_monitor;
 mod input_sequence;
 mod ipc;
+mod macos_quarantine;
 mod models;
 mod quality_live;
 mod services;
@@ -203,6 +204,7 @@ pub fn run() {
             ipc::save_sunburst_settings,
             ipc::get_api_server_settings,
             ipc::set_api_server_settings,
+            ipc::clear_app_quarantine,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

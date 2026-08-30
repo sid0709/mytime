@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { hasTauriRuntime } from "../api/tauri";
+import { hasTauriRuntime, invokeCommand } from "../api/tauri";
 
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const STARTUP_DELAY_MS = 4_000;
@@ -90,6 +90,11 @@ export function useAppUpdater() {
         }
       });
       setPhase("installing");
+      try {
+        await invokeCommand("clear_app_quarantine");
+      } catch {
+        // Best-effort: a failure here still relaunches; Gatekeeper may prompt.
+      }
       const { relaunch } = await import("@tauri-apps/plugin-process");
       await relaunch();
     } catch (err) {
