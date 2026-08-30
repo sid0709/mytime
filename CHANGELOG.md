@@ -4,6 +4,10 @@ All notable changes to MyTime are listed here. Versioning rules: `.cursor/VERSIO
 
 The in-app **Changes** page shows this file.
 
+## 1.3.0 — 2026-08-29
+
+- Redesigned the in-app update dialog: version pills, a short "what's new" list, and no raw GitHub markdown.
+
 ## 1.2.0 — 2026-08-29
 
 - Release CI no longer fails when `TAURI_SIGNING_PRIVATE_KEY` is missing; installers still publish, and updater signatures are created only when that secret is set.

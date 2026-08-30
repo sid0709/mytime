@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { changelogReleases } from "../changelogReleases";
+import { formatUpdateNotes } from "../formatUpdateNotes";
 import { hasTauriRuntime, invokeCommand } from "../api/tauri";
 
 const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
@@ -19,7 +21,7 @@ export type UpdatePhase =
 export interface AvailableUpdate {
   version: string;
   currentVersion: string;
-  notes: string;
+  notes: string[];
   date?: string;
 }
 
@@ -49,11 +51,14 @@ export function useAppUpdater() {
       if (!update) return;
       if (dismissedVersionRef.current === update.version) return;
 
+      const changelogNotes =
+        changelogReleases.find((release) => release.version === update.version)
+          ?.notes ?? [];
       updateRef.current = update;
       setAvailable({
         version: update.version,
         currentVersion: update.currentVersion,
-        notes: update.body ?? "",
+        notes: formatUpdateNotes(update.body ?? "", changelogNotes),
         date: update.date,
       });
       setPhase("available");
