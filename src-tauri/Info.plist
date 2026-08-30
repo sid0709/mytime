@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSAccessibilityUsageDescription</key>
+	<string>MyTime monitors keyboard and mouse activity locally for activity tracking and APM metrics.</string>
+	<key>NSInputMonitoringUsageDescription</key>
+	<string>MyTime needs Input Monitoring access to detect keyboard and mouse activity for activity tracking.</string>
+	<key>LSUIElement</key>
+	<true/>
+</dict>
+</plist>

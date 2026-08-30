@@ -1,0 +1,317 @@
+openapi: 3.0.3
+info:
+  title: MyTime Remote API
+  version: 0.1.0
+  description: Read-only LAN API exposed by each MyTime desktop instance.
+servers:
+  - url: http://{host}:{port}/api/v1
+    variables:
+      host:
+        default: 192.168.1.42
+      port:
+        default: "18765"
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponseDto"
+  /metadata:
+    get:
+      summary: Machine metadata
+      responses:
+        "200":
+          description: Machine and API metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MetadataResponseDto"
+  /dashboard:
+    get:
+      summary: Dashboard summary
+      responses:
+        "200":
+          description: Dashboard metrics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardSummaryDto"
+  /input/stats:
+    get:
+      summary: Input stats for today
+      responses:
+        "200":
+          description: Input counters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InputStatsDto"
+  /input/events:
+    get:
+      summary: Recent input events
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Live feed events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LiveFeedEventDto"
+  /activity/overview:
+    get:
+      summary: Activity overview
+      parameters:
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Overview payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityOverviewDto"
+  /activity/sessions:
+    get:
+      summary: Paginated activity sessions
+      parameters:
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: offset
+          schema:
+            type: integer
+        - in: query
+          name: limit
+          schema:
+            type: integer
+        - in: query
+          name: filterText
+          schema:
+            type: string
+        - in: query
+          name: appId
+          schema:
+            type: string
+        - in: query
+          name: sortField
+          schema:
+            type: string
+        - in: query
+          name: sortDir
+          schema:
+            type: string
+        - in: query
+          name: includeIcons
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Session page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivitySessionPageDto"
+  /activity/timeline:
+    get:
+      summary: Activity timeline
+      parameters:
+        - in: query
+          name: startDate
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: endDate
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Timeline payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityTimelineDto"
+components:
+  schemas:
+    HealthResponseDto:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        version:
+          type: string
+    MetadataResponseDto:
+      type: object
+      properties:
+        appName:
+          type: string
+        version:
+          type: string
+        platform:
+          type: string
+        hostname:
+          type: string
+        startedAt:
+          type: string
+        backendMode:
+          type: string
+        collectorsRunning:
+          type: boolean
+        dataDir:
+          type: string
+        logDir:
+          type: string
+        dbPath:
+          type: string
+        dbExists:
+          type: boolean
+        apiServerPort:
+          type: integer
+        apiBaseUrl:
+          type: string
+    MetricCardDto:
+      type: object
+      properties:
+        title:
+          type: string
+        value:
+          type: string
+        change:
+          type: string
+          nullable: true
+        trend:
+          type: string
+          nullable: true
+        subtitle:
+          type: string
+          nullable: true
+    DashboardSummaryDto:
+      type: object
+      properties:
+        generatedAt:
+          type: string
+        metrics:
+          type: object
+    InputStatsDto:
+      type: object
+      properties:
+        keyPressesToday:
+          type: integer
+        mouseEventsToday:
+          type: integer
+        scrollEventsToday:
+          type: integer
+        firstActivityTsMs:
+          type: integer
+          nullable: true
+        lastActivityTsMs:
+          type: integer
+          nullable: true
+    LiveFeedEventDto:
+      type: object
+      properties:
+        id:
+          type: integer
+        eventType:
+          type: string
+        description:
+          type: string
+        timestamp:
+          type: string
+        detail:
+          type: string
+          nullable: true
+    AppUsageSessionDto:
+      type: object
+      properties:
+        id:
+          type: integer
+        appId:
+          type: string
+        appName:
+          type: string
+        iconDataUrl:
+          type: string
+          nullable: true
+        title:
+          type: string
+        pid:
+          type: integer
+        startedAtMs:
+          type: integer
+        endedAtMs:
+          type: integer
+        durationMs:
+          type: integer
+        keyPresses:
+          type: integer
+        mouseClicks:
+          type: integer
+        scrollEvents:
+          type: integer
+    AppInputMinuteDto:
+      type: object
+      properties:
+        minuteOfDay:
+          type: integer
+        keyPresses:
+          type: integer
+        mouseClicks:
+          type: integer
+        mouseMoves:
+          type: integer
+        scrollEvents:
+          type: integer
+        diversity:
+          type: number
+          nullable: true
+        timing:
+          type: number
+          nullable: true
+        quality:
+          type: number
+          nullable: true
+    ActivityOverviewDto:
+      type: object
+    ActivitySessionPageDto:
+      type: object
+      properties:
+        generatedAt:
+          type: string
+        total:
+          type: integer
+        offset:
+          type: integer
+        limit:
+          type: integer
+        hasMore:
+          type: boolean
+        sessions:
+          type: array
+          items:
+            $ref: "#/components/schemas/AppUsageSessionDto"
+    ActivityTimelineDto:
+      type: object
+    ApiErrorDto:
+      type: object
+      properties:
+        error:
+          type: string

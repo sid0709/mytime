@@ -1,0 +1,30 @@
+{
+  "generatedAt": "2026-07-02T14:30:00Z",
+  "sessions": [
+    {
+      "id": 1204,
+      "appId": "com.google.Chrome",
+      "appName": "Google Chrome",
+      "title": "MyTime - Dashboard",
+      "pid": 8832,
+      "startedAtMs": 1751455200000,
+      "endedAtMs": 1751458920000,
+      "durationMs": 3720000,
+      "keyPresses": 842,
+      "mouseClicks": 156,
+      "scrollEvents": 89
+    }
+  ],
+  "apps": [
+    {
+      "appId": "com.google.Chrome",
+      "appName": "Google Chrome",
+      "sessionCount": 12,
+      "totalDurationMs": 14400000,
+      "keyPresses": 8420,
+      "mouseClicks": 1560,
+      "scrollEvents": 890
+    }
+  ],
+  "inputMinutes": []
+}

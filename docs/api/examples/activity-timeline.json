@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2026-07-02T14:30:00Z",
+  "startDate": "2026-06-26",
+  "endDate": "2026-07-02",
+  "isHourly": false,
+  "yLabel": "hours",
+  "maxValue": 8.5,
+  "avgActive": 5.2,
+  "points": [
+    {
+      "label": "6/26",
+      "active": 6.2,
+      "inactive": 17.8,
+      "fullDate": "2026-06-26"
+    }
+  ]
+}

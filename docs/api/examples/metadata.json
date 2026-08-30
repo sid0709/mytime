@@ -1,0 +1,15 @@
+{
+  "appName": "MyTime",
+  "version": "0.1.0",
+  "platform": "macos",
+  "hostname": "robin-macbook",
+  "startedAt": "2026-07-02T08:15:00Z",
+  "backendMode": "foundation",
+  "collectorsRunning": true,
+  "dataDir": "/Users/robin/Library/Application Support/com.gladiator.mytime",
+  "logDir": "/Users/robin/Library/Application Support/com.gladiator.mytime/logs",
+  "dbPath": "/Users/robin/Library/Application Support/com.gladiator.mytime/mytime.sqlite3",
+  "dbExists": true,
+  "apiServerPort": 18765,
+  "apiBaseUrl": "http://192.168.1.42:18765/api/v1"
+}

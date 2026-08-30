@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-07-02T14:30:00Z",
+  "metrics": {
+    "activeTimeToday": {
+      "title": "Active Time Today",
+      "value": "5h 42m",
+      "change": null,
+      "trend": null,
+      "subtitle": "minutes with keyboard/mouse activity"
+    },
+    "mouseEvents": {
+      "title": "Mouse Events",
+      "value": "12,483",
+      "change": null,
+      "trend": null,
+      "subtitle": "clicks & movements"
+    },
+    "keystrokes": {
+      "title": "Keystrokes",
+      "value": "28,904",
+      "change": null,
+      "trend": null,
+      "subtitle": "total today"
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "MyTime",
+  "version": "1.0.0",
+  "identifier": "com.gladiator.mytime",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "MyTime",
+        "width": 1024,
+        "height": 768,
+        "visible": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "resources": [
+      "icons/32x32.png"
+    ],
+    "macOS": {
+      "entitlements": "entitlements.plist"
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU3QzAyREE0REMzQzU1QTkKUldTcFZUemNwQzNBNXdTa3p2dGtyR0V0WWJ5RWpvSlBpZ2RDdk8yT05hZXZBaWNiOGhTWDk4MVgK",
+      "endpoints": [
+        "https://github.com/omnimuh730/mytime/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
+  }
+}

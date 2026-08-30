@@ -1,0 +1,16 @@
+[
+  {
+    "id": 9912,
+    "eventType": "keyboard",
+    "description": "Key press",
+    "timestamp": "2026-07-02T14:29:58Z",
+    "detail": "Enter"
+  },
+  {
+    "id": 9911,
+    "eventType": "mouse",
+    "description": "Left click",
+    "timestamp": "2026-07-02T14:29:57Z",
+    "detail": "(842, 516)"
+  }
+]

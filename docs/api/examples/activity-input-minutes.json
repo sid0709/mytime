@@ -1,0 +1,16 @@
+[
+  {
+    "minuteOfDay": 540,
+    "keyPresses": 42,
+    "mouseClicks": 8,
+    "mouseMoves": 120,
+    "scrollEvents": 3
+  },
+  {
+    "minuteOfDay": 541,
+    "keyPresses": 18,
+    "mouseClicks": 4,
+    "mouseMoves": 64,
+    "scrollEvents": 1
+  }
+]

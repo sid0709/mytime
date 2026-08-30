@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-07-02T14:30:00Z",
+  "totalSessions": 47,
+  "apps": [
+    {
+      "appId": "com.google.Chrome",
+      "appName": "Google Chrome",
+      "iconDataUrl": null,
+      "sessionCount": 12,
+      "totalDurationMs": 14400000,
+      "keyPresses": 8420,
+      "mouseClicks": 1560,
+      "scrollEvents": 890
+    }
+  ],
+  "inputMinutes": [
+    {
+      "minuteOfDay": 540,
+      "keyPresses": 42,
+      "mouseClicks": 8,
+      "mouseMoves": 120,
+      "scrollEvents": 3
+    }
+  ],
+  "timelineSessions": []
+}
