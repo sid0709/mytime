@@ -251,6 +251,23 @@ export function FocusCorrelator({ inputMinutes = [] }: FocusCorrelatorProps) {
     return [rhythm[0].minute, rhythm[rhythm.length - 1].minute];
   }, [rhythm]);
 
+  const chartRhythm = useMemo(() => {
+    const step = 5;
+    if (rhythm.length <= step) return rhythm;
+    const out: RhythmPoint[] = [];
+    for (let i = 0; i < rhythm.length; i += step) {
+      let sum = 0;
+      let n = 0;
+      const end = Math.min(i + step, rhythm.length);
+      for (let j = i; j < end; j += 1) {
+        sum += rhythm[j].density;
+        n += 1;
+      }
+      out.push({ ...rhythm[i], density: n === 0 ? 0 : sum / n });
+    }
+    return out;
+  }, [rhythm]);
+
   const scatterXDomain = useMemo(() => {
     if (scatter.length === 0) return [0, 24];
     const min = Math.max(0, scatter[0].hour - 0.5);
@@ -509,10 +526,10 @@ export function FocusCorrelator({ inputMinutes = [] }: FocusCorrelatorProps) {
                 />
               )}
               <ZAxis type="number" dataKey="density" range={[36, 140]} />
-              <Scatter data={byZone.light} fill={DENSITY_ZONE_META.light.color} opacity={0.75} name="Low" />
-              <Scatter data={byZone.mixed} fill={DENSITY_ZONE_META.mixed.color} opacity={0.8} name="Light mix" />
-              <Scatter data={byZone.good} fill={DENSITY_ZONE_META.good.color} opacity={0.85} name="Steady" />
-              <Scatter data={byZone.peak} fill={DENSITY_ZONE_META.peak.color} opacity={0.95} name="Peak" />
+              <Scatter data={byZone.light} fill={DENSITY_ZONE_META.light.color} opacity={0.75} name="Low" isAnimationActive={false} />
+              <Scatter data={byZone.mixed} fill={DENSITY_ZONE_META.mixed.color} opacity={0.8} name="Light mix" isAnimationActive={false} />
+              <Scatter data={byZone.good} fill={DENSITY_ZONE_META.good.color} opacity={0.85} name="Steady" isAnimationActive={false} />
+              <Scatter data={byZone.peak} fill={DENSITY_ZONE_META.peak.color} opacity={0.95} name="Peak" isAnimationActive={false} />
             </ScatterChart>
           </ResponsiveContainer>
         </div>
@@ -520,7 +537,7 @@ export function FocusCorrelator({ inputMinutes = [] }: FocusCorrelatorProps) {
         <div className="h-[220px] sm:h-[300px] min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
-              data={rhythm}
+              data={chartRhythm}
               margin={{ top: 10, right: 10, bottom: 10, left: 0 }}
             >
               <defs>
@@ -571,7 +588,7 @@ export function FocusCorrelator({ inputMinutes = [] }: FocusCorrelatorProps) {
                 strokeOpacity={0.25}
               />
               <Area
-                type="monotone"
+                type="linear"
                 dataKey="density"
                 name="Density"
                 stroke="#6366f1"

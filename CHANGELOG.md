@@ -4,6 +4,11 @@ All notable changes to MyTime are listed here. Versioning rules: `.cursor/VERSIO
 
 The in-app **Changes** page shows this file.
 
+## 1.4.0 — 2026-09-01
+
+- Made the Dashboard lighter: live density stays on Pulse, while Focus Correlator and the keyboard live on Activity Tracker.
+- Smoother live UI — the 1-second quality tick no longer rebuilds charts or minute bars, and frosted-glass blur is gone from the header.
+
 ## 1.3.0 — 2026-08-29
 
 - Redesigned the in-app update dialog: version pills, a short "what's new" list, and no raw GitHub markdown.

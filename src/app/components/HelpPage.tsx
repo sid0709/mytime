@@ -32,7 +32,7 @@ const helpData: HelpSection[] = [
       {
         title: "Detection Board",
         description:
-          "The compact strip under Live Pulse is the live view of Layer 1 (hardware vs remote/injected) and Layer 2 (varied work vs one-channel volume). Each active second is **0.65 × LZ76 entropy rate + 0.35 × permutation entropy** of the last `QUALITY_LIVE_WINDOW_MS` (default 20s) of action symbols — not a 0 / 45 / 100 mix. Idle seconds are 0%. The headline is the mean of those 1-second percents and never a dash. The chart is a **smooth density line** of the last 60 one-second values. Leaving Dashboard does not reset the strip. **Refresh** flushes today's sidecar file. Activity Tracker shows the same board above its stat cards.",
+          "The compact strip under Live Pulse is the live view of Layer 1 (hardware vs remote/injected) and Layer 2 (varied work vs one-channel volume). Each active second is **0.65 × LZ76 entropy rate + 0.35 × permutation entropy** of the last `QUALITY_LIVE_WINDOW_MS` (default 20s) of action symbols — not a 0 / 45 / 100 mix. Idle seconds are 0%. The headline is the mean of those 1-second percents and never a dash. The spark is a **bar strip of that same live window**. Leaving Dashboard does not reset the strip. **Refresh** flushes today's sidecar file. Activity Tracker shows the same board above its stat cards.",
       },
       {
         title: "Stat Cards (Top Row)",
@@ -40,19 +40,9 @@ const helpData: HelpSection[] = [
           "Three summary cards display the key daily activity metrics: **Active Time Today** (minutes containing hardware activity), **Mouse Events** (cumulative clicks and movements), and **Keystrokes** (total physical key presses).",
       },
       {
-        title: "Hardware & Focus Correlator",
-        description:
-          "A full-width density chart of today's 1-second work quality. **Density** is the mean of those percents (0–100%), including idle and anything below 25% — nothing is omitted or snapped to 0/25/100.\n\n- **Day view**: A smooth area line of every minute from first signal through now. Height is density. Reference lines mark 70% (peak), 45% (steady), and 25% (light).\n- **Blocks view**: 15-minute means as dots on a time × density grid, colored by the same bands.\n\nFour zone cards show how much of the day sat in each band. Insights use peak and average **percent**, never actions-per-minute.",
-      },
-      {
         title: "Activity Timeline (Dashboard)",
         description:
           "A stacked bar chart showing **active vs. inactive time** over a selectable date range using the **PremiumDateRangePicker**. Each bar represents either a day (showing hours out of 24) or an hour (showing minutes out of 60) depending on the range length. Active bars are color-coded by intensity: green for high activity, indigo for moderate, yellow for low, and red for minimal. Inactive time is shown as a faint red overlay stacking to the full 24h/60m. A dashed average reference line and a rich tooltip with activity rate percentage provide context.\n\nFor single-day views, the chart switches to hourly granularity (minutes per hour). For ranges over 31 days, data aggregates into weekly averages.",
-      },
-      {
-        title: "Input Monitor",
-        description:
-          "An animated SVG visualization of keyboard and mouse hardware. The keyboard displays a full ANSI layout with keys that glow indigo when pressed — an **Other** key represents unmapped/special keys. The mouse shows left/right click zones with press animations, and a scroll wheel that lights up cyan with directional arrows for scroll up/down events. A mini event log at the bottom shows the 4 most recent input actions.",
       },
     ],
   },
@@ -80,6 +70,16 @@ const helpData: HelpSection[] = [
         title: "Multi-Track Timeline Editor",
         description:
           "A ManicTime-style multi-track timeline editor that visualizes your day across multiple synchronized tracks:\n\n- **Activity Status Track**: Green when 1-second work quality is at least 25%; red for idle or low-quality seconds in the day's span; dark gray for shutdown. Sub-minute gaps match the sidecar, not a whole green minute.\n- **App Usage Track**: Horizontal bars representing which applications were in focus and for how long.\n- **Input Heatmap Track**: Height is the share of seconds in view with quality ≥ 25% (sidecar). Falls back to per-minute APM if the sidecar is not loaded.\n\nFeatures a minimap navigator at the bottom with a draggable viewing window instead of a traditional scrollbar. Zoom is controlled via the mouse wheel (up to 64×), with track visibility toggles and a zoom-level indicator in the toolbar.",
+      },
+      {
+        title: "Hardware & Focus Correlator",
+        description:
+          "A full-width density chart of today's 1-second work quality. **Density** is the mean of those percents (0–100%), including idle and anything below 25% — nothing is omitted or snapped to 0/25/100.\n\n- **Day view**: An area line of 5-minute averages from first signal through now. Height is density. Reference lines mark 70% (peak), 45% (steady), and 25% (light).\n- **Blocks view**: 15-minute means as dots on a time × density grid, colored by the same bands.\n\nFour zone cards show how much of the day sat in each band. Insights use peak and average **percent**, never actions-per-minute.",
+      },
+      {
+        title: "Input Monitor",
+        description:
+          "An animated SVG visualization of keyboard and mouse hardware. The keyboard displays a full ANSI layout with keys that glow indigo when pressed — an **Other** key represents unmapped/special keys. The mouse shows left/right click zones with press animations, and a scroll wheel that lights up cyan with directional arrows for scroll up/down events. A mini event log at the bottom shows the 4 most recent input actions.",
       },
       {
         title: "App Usage Breakdown (Sunburst Chart)",
@@ -119,9 +119,9 @@ const helpData: HelpSection[] = [
           "An animated sidebar with 5 navigable views: **Dashboard**, **Activity Tracker**, **System Logs**, **Changes**, and **Help & Documentation**. Features micro-animations on hover and selection including scale springs, glow effects, and sliding active indicators. On mobile (`<lg`), the sidebar collapses into a fixed bottom navigation bar with compact icons.",
       },
       {
-        title: "Glass-Effect Top Bar",
+        title: "Top Bar",
         description:
-          "A frosted-glass header bar with `backdrop-blur-sm` and a semi-transparent background. It displays the current page icon, title, subtitle, last-updated time, and theme toggle.",
+          "The header bar displays the current page icon, title, subtitle, last-updated time, and theme toggle.",
       },
       {
         title: "Changes",

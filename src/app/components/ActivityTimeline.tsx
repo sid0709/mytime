@@ -202,6 +202,7 @@ export function ActivityTimeline({
               stackId="time"
               radius={[0, 0, 0, 0]}
               name="Active"
+              isAnimationActive={false}
             >
               {data.map((d, i) => {
                 const pct = d.active / maxVal;
@@ -224,6 +225,7 @@ export function ActivityTimeline({
               fillOpacity={0.12}
               radius={[3, 3, 0, 0]}
               name="Inactive"
+              isAnimationActive={false}
             />
           </BarChart>
         </ResponsiveContainer>

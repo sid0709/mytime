@@ -1,25 +1,11 @@
 import { useMemo, useState } from "react";
 import { RefreshCw, Shield, ShieldAlert, ShieldOff, Sparkles } from "lucide-react";
-import {
-  Area,
-  AreaChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
 import type { AppInputMinuteDto } from "../types/backend";
 import { QUALITY_BROWSING_TARGET, workQualitySummary } from "../constants/activityScore";
-import { lastSecondsPercents } from "../constants/density";
 import { useInputMonitorStatus } from "../hooks/useInputMonitorStatus";
 import { useLiveWorkQuality } from "../hooks/useLiveWorkQuality";
-import {
-  getQualityDaySnapshot,
-  isQualityDayReady,
-  refreshQualityLive,
-} from "../qualityLiveStore";
-import { formatTooltipNumber } from "../utils/formatTooltipValue";
+import { refreshQualityLive } from "../qualityLiveStore";
 
 interface Props {
   inputMinutes?: AppInputMinuteDto[];
@@ -38,7 +24,6 @@ function originKind(
 
 export function DetectionBoard({ inputMinutes = [] }: Props) {
   const { status, isLoading } = useInputMonitorStatus();
-  const live = useLiveWorkQuality();
   const [refreshing, setRefreshing] = useState(false);
 
   const origin = originKind(status?.listenEventAccess, status?.remoteSessionActive);
@@ -49,27 +34,6 @@ export function DetectionBoard({ inputMinutes = [] }: Props) {
     () => workQualitySummary(inputMinutes),
     [inputMinutes],
   );
-  const quality = live.quality;
-  const densitySeries = useMemo(
-    () =>
-      lastSecondsPercents(
-        isQualityDayReady() ? getQualityDaySnapshot() : undefined,
-        live.secondOfDay,
-        60,
-        live.spark,
-      ),
-    [live.secondOfDay, live.spark],
-  );
-  const windowLabel = `${Math.round(live.windowMs / 1000)}s`;
-  const qualityPct = Math.round(quality * 100);
-  const qualityColor =
-    qualityPct === 0
-      ? "text-muted-foreground"
-      : quality >= 0.7
-        ? "text-emerald-400"
-        : quality >= QUALITY_BROWSING_TARGET
-          ? "text-primary"
-          : "text-amber-400";
 
   return (
     <div className="bg-card rounded-2xl border border-border p-3 sm:p-4">
@@ -104,34 +68,63 @@ export function DetectionBoard({ inputMinutes = [] }: Props) {
               <Sparkles className="w-4 h-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex items-baseline gap-2">
-                <span className={`text-xl tabular-nums tracking-tight ${qualityColor}`}>
-                  {qualityPct}%
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  density · last {windowLabel}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRefreshing(true);
-                    void refreshQualityLive().finally(() => setRefreshing(false));
-                  }}
-                  className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border bg-secondary/40 px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <RefreshCw className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />
-                  Refresh
-                </button>
-              </div>
+              <LiveDensityPanel
+                refreshing={refreshing}
+                onRefresh={() => {
+                  setRefreshing(true);
+                  void refreshQualityLive().finally(() => setRefreshing(false));
+                }}
+              />
               <p className="text-xs text-muted-foreground mt-0.5">
                 {`${lowVariety ? "High input, low variety · " : ""}Volume ${Math.round(volume).toLocaleString()} · effective ${Math.round(effective).toLocaleString()}`}
               </p>
-              <DensityLineChart percents={densitySeries} />
             </div>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function LiveDensityPanel({
+  refreshing,
+  onRefresh,
+}: {
+  refreshing: boolean;
+  onRefresh: () => void;
+}) {
+  const live = useLiveWorkQuality();
+  const qualityPct = Math.round(live.quality * 100);
+  const windowLabel = `${Math.round(live.windowMs / 1000)}s`;
+  const qualityColor =
+    qualityPct === 0
+      ? "text-muted-foreground"
+      : live.quality >= 0.7
+        ? "text-emerald-400"
+        : live.quality >= QUALITY_BROWSING_TARGET
+          ? "text-primary"
+          : "text-amber-400";
+
+  return (
+    <>
+      <div className="flex items-baseline gap-2">
+        <span className={`text-xl tabular-nums tracking-tight ${qualityColor}`}>
+          {qualityPct}%
+        </span>
+        <span className="text-xs text-muted-foreground">
+          density · last {windowLabel}
+        </span>
+        <button
+          type="button"
+          onClick={onRefresh}
+          className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border bg-secondary/40 px-2 py-1 text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <RefreshCw className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />
+          Refresh
+        </button>
+      </div>
+      <DensitySpark percents={live.spark} />
+    </>
   );
 }
 
@@ -173,51 +166,27 @@ function OriginPill({
   );
 }
 
-function DensityLineChart({ percents }: { percents: number[] }) {
-  const data = useMemo(
-    () => percents.map((pct, i) => ({ i, pct })),
-    [percents],
-  );
-
+function DensitySpark({ percents }: { percents: number[] }) {
   if (percents.length === 0) {
-    return <div className="h-14 mt-2 rounded-md bg-secondary/40" />;
+    return <div className="h-10 mt-2 rounded-md bg-secondary/40" />;
   }
 
   return (
-    <div className="h-14 mt-2">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
-          <defs>
-            <linearGradient id="detectionDensityFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#6366f1" stopOpacity={0.4} />
-              <stop offset="100%" stopColor="#6366f1" stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <XAxis dataKey="i" hide />
-          <YAxis hide domain={[0, 100]} />
-          <Tooltip
-            cursor={{ stroke: "var(--grid-stroke-strong)", strokeWidth: 1 }}
-            content={({ active, payload }) => {
-              if (!active || !payload?.length) return null;
-              const pct = Number(payload[0]?.value ?? 0);
-              return (
-                <div className="bg-card border border-border rounded-lg px-2 py-1 shadow-lg text-[10px] tabular-nums">
-                  {formatTooltipNumber(pct, 1)}%
-                </div>
-              );
+    <div className="h-10 mt-2 flex items-end gap-px">
+      {percents.map((value, i) => {
+        const pct = value * 100;
+        return (
+          <div
+            key={i}
+            className="flex-1 min-w-0 rounded-sm bg-primary"
+            style={{
+              height: `${Math.max(pct, pct > 0 ? 4 : 0)}%`,
+              opacity: 0.25 + (pct / 100) * 0.75,
             }}
+            title={`${Math.round(pct)}%`}
           />
-          <Area
-            type="monotone"
-            dataKey="pct"
-            stroke="#6366f1"
-            strokeWidth={2}
-            fill="url(#detectionDensityFill)"
-            dot={false}
-            isAnimationActive={false}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
+        );
+      })}
     </div>
   );
 }

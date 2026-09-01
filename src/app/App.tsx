@@ -152,7 +152,7 @@ export default function App() {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header */}
-        <header className="h-auto min-h-[56px] lg:min-h-[72px] border-b border-border flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 lg:px-8 py-2 sm:py-0 shrink-0 bg-card/40 backdrop-blur-sm gap-2 sm:gap-0">
+        <header className="h-auto min-h-[56px] lg:min-h-[72px] border-b border-border flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 sm:px-6 lg:px-8 py-2 sm:py-0 shrink-0 bg-card gap-2 sm:gap-0">
           {/* Left: Page context */}
           <div className="flex items-center gap-3 lg:gap-4">
             <AnimatePresence mode="wait">
@@ -172,9 +172,9 @@ export default function App() {
                 <motion.h2
                   key={activeTab + "-title"}
                   className="text-foreground tracking-tight leading-tight text-sm sm:text-base lg:text-xl"
-                  initial={{ y: 12, opacity: 0, filter: "blur(4px)" }}
-                  animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-                  exit={{ y: -12, opacity: 0, filter: "blur(4px)" }}
+                  initial={{ y: 8, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -8, opacity: 0 }}
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
                 >
                   {page.title}
@@ -184,9 +184,9 @@ export default function App() {
                 <motion.p
                   key={activeTab + "-sub"}
                   className="text-[10px] sm:text-[11px] text-muted-foreground leading-tight hidden sm:block"
-                  initial={{ y: 10, opacity: 0, filter: "blur(3px)" }}
-                  animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-                  exit={{ y: -10, opacity: 0, filter: "blur(3px)" }}
+                  initial={{ y: 6, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -6, opacity: 0 }}
                   transition={{ type: "spring", stiffness: 300, damping: 25, delay: 0.04 }}
                 >
                   {page.subtitle}
@@ -296,18 +296,7 @@ function DashboardView({ summary }: { summary: DashboardSummaryDto | null }) {
         />
       </div>
 
-      {/* Focus Correlator (full width) */}
-      <FocusCorrelator inputMinutes={inputMinutes} />
-
-      {/* Activity details */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-stretch">
-        <div className="[&>div]:h-full">
-          <StableActivityTimeline />
-        </div>
-        <div className="[&>div]:h-full">
-          <StableInputVisualizer />
-        </div>
-      </div>
+      <StableActivityTimeline />
     </div>
   );
 }
@@ -432,11 +421,15 @@ function ActivityView({
         />
       </div>
 
+      <FocusCorrelator inputMinutes={activityOverview?.inputMinutes} />
+
       {/* App Usage Sunburst + Live Activity Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <SunburstChart allApps={realSunburstApps} />
         <StableLiveActivityFeed />
       </div>
+
+      <StableInputVisualizer />
 
       {/* Activity Timeline + Activity Heatmap */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 items-stretch">
