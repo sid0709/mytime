@@ -19,7 +19,6 @@ interface TimelineEditorProps {
   apmData?: APMDataPoint[];
   markers?: TimelineMarker[];
   activityStatus?: ActivityStatus[];
-  qualityDay?: ArrayLike<number>;
   appSummaries?: AppUsageSummaryDto[];
   appIconDataUrlById?: Record<string, string | null | undefined>;
   isLoading?: boolean;
@@ -32,7 +31,6 @@ export function TimelineEditor({
   apmData: externalApmData,
   markers: externalMarkers,
   activityStatus: externalActivityStatus,
-  qualityDay,
   appSummaries = [],
   appIconDataUrlById = {},
   isLoading = false,
@@ -100,7 +98,6 @@ export function TimelineEditor({
         apmData={apmData}
         markers={markers}
         activityStatus={activityStatus}
-        qualityDay={qualityDay}
         zoom={zoom}
         onZoomChange={setZoom}
         visibleTracks={visibleTracks}

@@ -43,9 +43,6 @@ pub struct InputMinuteRow {
     pub mouse_clicks: u32,
     pub mouse_moves: u32,
     pub scroll_events: u32,
-    pub diversity_centi: Option<i32>,
-    pub timing_centi: Option<i32>,
-    pub quality_centi: Option<i32>,
 }
 
 const SCHEMA_VERSION: i32 = 5;
@@ -314,17 +311,6 @@ fn migrate(conn: &Connection) -> Result<MigrationOutcome, String> {
         }
     }
 
-    if !table_has_column(&*tx, "input_minutes", "diversity_centi")? {
-        tx.execute_batch(
-            r#"
-            ALTER TABLE input_minutes ADD COLUMN diversity_centi INTEGER;
-            ALTER TABLE input_minutes ADD COLUMN timing_centi INTEGER;
-            ALTER TABLE input_minutes ADD COLUMN quality_centi INTEGER;
-            "#,
-        )
-        .map_err(|error| error.to_string())?;
-    }
-
     tx.execute_batch(
         r#"
             CREATE INDEX IF NOT EXISTS idx_activity_sessions_date
@@ -516,10 +502,9 @@ pub fn replace_input_minutes_for_date(
     for row in minutes {
         tx.execute(
             r#"INSERT INTO input_minutes (
-                 date, minute_of_day, key_presses, mouse_clicks, mouse_moves, scroll_events,
-                 diversity_centi, timing_centi, quality_centi
+                 date, minute_of_day, key_presses, mouse_clicks, mouse_moves, scroll_events
                )
-               VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)"#,
+               VALUES (?1, ?2, ?3, ?4, ?5, ?6)"#,
             rusqlite::params![
                 date,
                 row.minute_of_day as i64,
@@ -527,9 +512,6 @@ pub fn replace_input_minutes_for_date(
                 row.mouse_clicks as i64,
                 row.mouse_moves as i64,
                 row.scroll_events as i64,
-                row.diversity_centi,
-                row.timing_centi,
-                row.quality_centi,
             ],
         )?;
     }
@@ -544,17 +526,13 @@ pub fn upsert_input_minutes_for_date(
 ) -> Result<(), rusqlite::Error> {
     let mut statement = tx.prepare_cached(
         r#"INSERT INTO input_minutes
-             (date, minute_of_day, key_presses, mouse_clicks, mouse_moves, scroll_events,
-              diversity_centi, timing_centi, quality_centi)
-           VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+             (date, minute_of_day, key_presses, mouse_clicks, mouse_moves, scroll_events)
+           VALUES (?1, ?2, ?3, ?4, ?5, ?6)
            ON CONFLICT(date, minute_of_day) DO UPDATE SET
              key_presses = excluded.key_presses,
              mouse_clicks = excluded.mouse_clicks,
              mouse_moves = excluded.mouse_moves,
-             scroll_events = excluded.scroll_events,
-             diversity_centi = excluded.diversity_centi,
-             timing_centi = excluded.timing_centi,
-             quality_centi = excluded.quality_centi"#,
+             scroll_events = excluded.scroll_events"#,
     )?;
     for row in minutes {
         statement.execute(rusqlite::params![
@@ -564,9 +542,6 @@ pub fn upsert_input_minutes_for_date(
             row.mouse_clicks as i64,
             row.mouse_moves as i64,
             row.scroll_events as i64,
-            row.diversity_centi,
-            row.timing_centi,
-            row.quality_centi,
         ])?;
     }
     Ok(())
@@ -775,8 +750,7 @@ pub fn load_activity_sessions_page_for_date(
 pub fn load_input_minutes_for_date(date: &str) -> Vec<InputMinuteRow> {
     with_conn(|conn| {
         let mut stmt = conn.prepare(
-            r#"SELECT minute_of_day, key_presses, mouse_clicks, mouse_moves, scroll_events,
-                      diversity_centi, timing_centi, quality_centi
+            r#"SELECT minute_of_day, key_presses, mouse_clicks, mouse_moves, scroll_events
                FROM input_minutes WHERE date = ?1 ORDER BY minute_of_day ASC"#,
         )?;
         let rows = stmt.query_map([date], |r| {
@@ -786,9 +760,6 @@ pub fn load_input_minutes_for_date(date: &str) -> Vec<InputMinuteRow> {
                 mouse_clicks: r.get::<_, i64>(2)? as u32,
                 mouse_moves: r.get::<_, i64>(3)? as u32,
                 scroll_events: r.get::<_, i64>(4)? as u32,
-                diversity_centi: r.get::<_, Option<i64>>(5)?.map(|v| v as i32),
-                timing_centi: r.get::<_, Option<i64>>(6)?.map(|v| v as i32),
-                quality_centi: r.get::<_, Option<i64>>(7)?.map(|v| v as i32),
             })
         })?;
         let out: Result<Vec<_>, _> = rows.collect();
@@ -832,14 +803,6 @@ mod tests {
         assert!(
             !super::table_has_column(&conn, "activity_sessions", "icon_data_url")
                 .expect("query session columns")
-        );
-        assert!(
-            super::table_has_column(&conn, "input_minutes", "diversity_centi")
-                .expect("query diversity column")
-        );
-        assert!(
-            super::table_has_column(&conn, "input_minutes", "quality_centi")
-                .expect("query quality column")
         );
         assert_eq!(version, SCHEMA_VERSION);
     }
@@ -957,9 +920,6 @@ mod tests {
                 mouse_clicks: 2,
                 mouse_moves: 3,
                 scroll_events: 4,
-                diversity_centi: Some(10),
-                timing_centi: Some(20),
-                quality_centi: Some(15),
             }],
         )
         .expect("insert minute");
@@ -972,9 +932,6 @@ mod tests {
                 mouse_clicks: 6,
                 mouse_moves: 7,
                 scroll_events: 8,
-                diversity_centi: Some(80),
-                timing_centi: Some(90),
-                quality_centi: Some(70),
             }],
         )
         .expect("update minute");

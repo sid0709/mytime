@@ -20,9 +20,8 @@ export interface TimelineBlock {
 
 export interface APMDataPoint {
   minute: number;
-  apm: number; // 0–250 effective intensity (volume × quality)
+  apm: number; // 0–250 effective intensity (volume-based)
   volume?: number;
-  quality?: number | null;
   type: "reading" | "mouse" | "typing";
 }
 

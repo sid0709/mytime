@@ -25,14 +25,9 @@ const helpData: HelpSection[] = [
     viewIcon: <LayoutDashboard className="w-4 h-4" />,
     cards: [
       {
-        title: "Live Pulse Strip",
-        description:
-          "A real-time horizontal strip of **work density** (0–100%), not actions-per-minute. The left reading is the last 20 seconds of 1-second quality. Bar height is that same percent — high activity is tall, 5% is short, and values below 25% are still drawn. The pulse covers the last 120 minutes on an absolute 0–100% scale.",
-      },
-      {
         title: "Detection Board",
         description:
-          "The compact strip under Live Pulse is the live view of Layer 1 (hardware vs remote/injected) and Layer 2 (varied work vs one-channel volume). Each active second is **0.65 × LZ76 entropy rate + 0.35 × permutation entropy** of the last `QUALITY_LIVE_WINDOW_MS` (default 20s) of action symbols — not a 0 / 45 / 100 mix. Idle seconds are 0%. The headline is the mean of those 1-second percents and never a dash. The spark is a **bar strip of that same live window**. Leaving Dashboard does not reset the strip. **Refresh** flushes today's sidecar file. Activity Tracker shows the same board above its stat cards.",
+          "A compact card showing Layer 1 hardware-origin detection: whether input is confirmed physical hardware, remote/virtual and not counted, or blocked on a missing permission, plus running counts of injected and remote events discarded. Activity Tracker shows the same board above its stat cards.",
       },
       {
         title: "Stat Cards (Top Row)",
@@ -54,12 +49,7 @@ const helpData: HelpSection[] = [
       {
         title: "Hardware-Only Input Policy",
         description:
-          "Activity is counted only when the operating system identifies keyboard or mouse input as originating from physical hardware **and** the session is a local console (not a remote or virtual-HID session). The Detection board on Dashboard and Activity is the live view of this policy and of work quality.\n\n**Layer 1a — injected input:** Windows discards events with `LLKHF_INJECTED` / `LLMHF_INJECTED` (SendInput, `mouse_event`, `keybd_event`, regardless of language). macOS accepts only HID-system events without a user-space source process.\n\n**Layer 1b — remote / virtual HID:** On Windows, input is ignored during an OS remote session (`SM_REMOTESESSION` / `SM_REMOTECONTROL`), when RDP-style enumerators are present, or when only software/virtual HID devices exist. Product names are never used. A leftover mirror adapter, even with a ROOT-enumerated HID, does not pause counting while a physical keyboard or mouse is present. On macOS the gate is session-only (`kCGSSessionOnConsoleKey`); HID-class detection is not used, and Screen Sharing the active console is not detected.\n\nForeground-window polling does not write app sessions to SQLite unless accepted hardware was seen in the last 30 seconds. Remote or idle window changes stay in RAM for the live UI only.\n\n**Known limits:** RDP Wrapper (concurrent console + RDP), remote tools that inject through the physical HID stack, USB gadgets that enumerate as real USB, and Windows remotes that leave a physical HID visible while adding only a mirror + ROOT HID. Kernel drivers, Arduino HID, and database/binary tampering are out of scope.",
-      },
-      {
-        title: "Work quality vs presence",
-        description:
-          "Active **time** is still presence: any accepted hardware input plus a 30-second grace period. The **Focus Correlator**, live pulse, and Detection board plot **density** from 1-second LZ76 samples: `0.65 · c(n)·log_5(n)/n + 0.35 · permutation entropy` over the last 20s of action symbols. Idle is 0%. One-channel scroll or keys score from that formula (often well below 45%); mixed work scores higher. STATUS and the weekly heatmap still treat below 25% as inactive for persist/green.\n\nLive quality is collected in the backend (not per-tab) and flushed every 30s to a sidecar next to the database (`quality-live/quality-YYYY-MM-DD.bin`), not SQLite. Idle-heavy 30s slots whose mean is below `QUALITY_PERSIST_MIN` (default 0.25) skip activity DB writes (`skipActivityPersist`). The live board and sidecar still record those percents, including 5%.\n\nSparse windows (fewer than 12 symbols) scale the same formula instead of snapping to 100%. Quality on persisted minutes is still omitted when too short (`null` in SQLite).\n\n**Limitation:** a metronomic mix of two action types (for example key, click, key, click) can still look diverse; Layer 2 is for monotonous human behavior, not adversarial bots.",
+          "Activity is counted only when the operating system identifies keyboard or mouse input as originating from physical hardware **and** the session is a local console (not a remote or virtual-HID session). The Detection board on Dashboard and Activity is the live view of this policy.\n\n**Layer 1a — injected input:** Windows discards events with `LLKHF_INJECTED` / `LLMHF_INJECTED` (SendInput, `mouse_event`, `keybd_event`, regardless of language). macOS accepts only HID-system events without a user-space source process.\n\n**Layer 1b — remote / virtual HID:** On Windows, input is ignored during an OS remote session (`SM_REMOTESESSION` / `SM_REMOTECONTROL`), when RDP-style enumerators are present, or when only software/virtual HID devices exist. Product names are never used. A leftover mirror adapter, even with a ROOT-enumerated HID, does not pause counting while a physical keyboard or mouse is present. On macOS the gate is session-only (`kCGSSessionOnConsoleKey`); HID-class detection is not used, and Screen Sharing the active console is not detected.\n\nForeground-window polling does not write app sessions to SQLite unless accepted hardware was seen in the last 30 seconds. Remote or idle window changes stay in RAM for the live UI only.\n\n**Known limits:** RDP Wrapper (concurrent console + RDP), remote tools that inject through the physical HID stack, USB gadgets that enumerate as real USB, and Windows remotes that leave a physical HID visible while adding only a mirror + ROOT HID. Kernel drivers, Arduino HID, and database/binary tampering are out of scope.",
       },
       {
         title: "Stat Cards (Activity)",
@@ -69,12 +59,7 @@ const helpData: HelpSection[] = [
       {
         title: "Multi-Track Timeline Editor",
         description:
-          "A ManicTime-style multi-track timeline editor that visualizes your day across multiple synchronized tracks:\n\n- **Activity Status Track**: Green when 1-second work quality is at least 25%; red for idle or low-quality seconds in the day's span; dark gray for shutdown. Sub-minute gaps match the sidecar, not a whole green minute.\n- **App Usage Track**: Horizontal bars representing which applications were in focus and for how long.\n- **Input Heatmap Track**: Height is the share of seconds in view with quality ≥ 25% (sidecar). Falls back to per-minute APM if the sidecar is not loaded.\n\nFeatures a minimap navigator at the bottom with a draggable viewing window instead of a traditional scrollbar. Zoom is controlled via the mouse wheel (up to 64×), with track visibility toggles and a zoom-level indicator in the toolbar.",
-      },
-      {
-        title: "Hardware & Focus Correlator",
-        description:
-          "A full-width density chart of today's 1-second work quality. **Density** is the mean of those percents (0–100%), including idle and anything below 25% — nothing is omitted or snapped to 0/25/100.\n\n- **Day view**: An area line of 5-minute averages from first signal through now. Height is density. Reference lines mark 70% (peak), 45% (steady), and 25% (light).\n- **Blocks view**: 15-minute means as dots on a time × density grid, colored by the same bands.\n\nFour zone cards show how much of the day sat in each band. Insights use peak and average **percent**, never actions-per-minute.",
+          "A ManicTime-style multi-track timeline editor that visualizes your day across multiple synchronized tracks:\n\n- **Activity Status Track**: Green for minutes with recorded keyboard/mouse input; red for idle minutes in the day's span; dark gray for shutdown.\n- **App Usage Track**: Horizontal bars representing which applications were in focus and for how long.\n- **Input Heatmap Track**: Height is per-minute input intensity (volume-based, 0–250 scale).\n\nFeatures a minimap navigator at the bottom with a draggable viewing window instead of a traditional scrollbar. Zoom is controlled via the mouse wheel (up to 64×), with track visibility toggles and a zoom-level indicator in the toolbar.",
       },
       {
         title: "Input Monitor",
@@ -99,7 +84,7 @@ const helpData: HelpSection[] = [
       {
         title: "Activity Heatmap",
         description:
-          "An 8-row grid: the last 7 days plus a blank **tomorrow** row, so the second-to-last row is always today. Each cell is one hour (24 per day), drawn as a square. Color is the share of seconds in that hour with work quality at or above 25%. Seconds below 25% are not counted.",
+          "An 8-row grid: the last 7 days plus a blank **tomorrow** row, so the second-to-last row is always today. Each cell is one hour (24 per day), drawn as a square. Color is the share of minutes in that hour with recorded keyboard/mouse input.",
       },
     ],
   },

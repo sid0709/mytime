@@ -3,7 +3,10 @@ use chrono::{Local, Timelike, Utc};
 use std::collections::HashMap;
 use std::{
     collections::{BTreeMap, HashSet, VecDeque},
-    sync::{Mutex, OnceLock},
+    sync::{
+        atomic::{AtomicI64, Ordering},
+        Mutex, OnceLock,
+    },
     thread,
     time::Duration,
 };
@@ -11,8 +14,7 @@ use tauri::{AppHandle, Runtime};
 use tracing::{info, warn};
 
 use crate::{
-    activity_score, db,
-    input_complexity::{self, ActionCategory, Symbol, SymbolRing},
+    db,
     input_monitor::InputMonitorEventDto,
     input_sequence::{self, SequenceState},
     models::AppInputMinuteDto,
@@ -20,6 +22,20 @@ use crate::{
 
 /// Inactivity interval: activity extends 30s past last input. Inactivity starts at last_activity + 30s.
 pub const INACTIVITY_INTERVAL_MS: i64 = 30_000;
+/// Accepted-hardware-event recency grace: sessions/minutes persist only while input has been
+/// seen within this window (avoids writing sessions for a foreground app with no real user).
+const HARDWARE_GRACE_MS: i64 = 30_000;
+
+static LAST_HARDWARE_MS: AtomicI64 = AtomicI64::new(0);
+
+fn hardware_recent() -> bool {
+    let last = LAST_HARDWARE_MS.load(Ordering::Relaxed);
+    if last <= 0 {
+        return false;
+    }
+    let now = Utc::now().timestamp_millis();
+    now.saturating_sub(last) <= HARDWARE_GRACE_MS
+}
 
 #[derive(Clone)]
 struct WindowSnapshot {
@@ -52,9 +68,6 @@ struct InputMinuteRecord {
     mouse_clicks: u32,
     mouse_moves: u32,
     scroll_events: u32,
-    diversity: Option<f32>,
-    timing: Option<f32>,
-    quality: Option<f32>,
 }
 
 struct State {
@@ -66,8 +79,6 @@ struct State {
     pending_sessions: VecDeque<(String, SessionRecord)>,
     pending_day_minutes: VecDeque<(String, Vec<db::InputMinuteRow>)>,
     last_sequence: Option<SequenceState>,
-    symbols: SymbolRing,
-    symbol_minute: Option<u32>,
 }
 
 static STATE: OnceLock<Mutex<State>> = OnceLock::new();
@@ -91,48 +102,7 @@ fn minute_row(minute: u32, record: &InputMinuteRecord) -> db::InputMinuteRow {
         mouse_clicks: record.mouse_clicks,
         mouse_moves: record.mouse_moves,
         scroll_events: record.scroll_events,
-        diversity_centi: activity_score::centi_from_quality(record.diversity),
-        timing_centi: activity_score::centi_from_quality(record.timing),
-        quality_centi: activity_score::centi_from_quality(record.quality),
     }
-}
-
-fn apply_complexity(state: &mut State, minute: u32) {
-    let score = input_complexity::score_symbols(&state.symbols.as_slice());
-    if let Some(bucket) = state.input_minutes.get_mut(&minute) {
-        bucket.diversity = Some(score.diversity);
-        bucket.timing = Some(score.timing);
-        bucket.quality = score.quality;
-        state.dirty_minutes.insert(minute);
-    }
-}
-
-fn push_symbol(
-    state: &mut State,
-    category: ActionCategory,
-    timestamp_ms: i64,
-    minute: Option<u32>,
-    pos: Option<(i32, i32)>,
-) {
-    let Some(minute) = minute else {
-        return;
-    };
-    if state.symbol_minute != Some(minute) {
-        if let Some(prev) = state.symbol_minute {
-            apply_complexity(state, prev);
-        }
-        state.symbols.clear();
-        state.symbol_minute = Some(minute);
-    }
-    state.symbols.push(Symbol {
-        category,
-        timestamp_ms,
-        pos: if category == ActionCategory::Move {
-            pos
-        } else {
-            None
-        },
-    });
 }
 
 fn dto_from_record(minute_of_day: u32, value: &InputMinuteRecord) -> AppInputMinuteDto {
@@ -142,9 +112,6 @@ fn dto_from_record(minute_of_day: u32, value: &InputMinuteRecord) -> AppInputMin
         mouse_clicks: value.mouse_clicks,
         mouse_moves: value.mouse_moves,
         scroll_events: value.scroll_events,
-        diversity: value.diversity,
-        timing: value.timing,
-        quality: value.quality,
     }
 }
 
@@ -159,8 +126,6 @@ fn state() -> &'static Mutex<State> {
             pending_sessions: VecDeque::new(),
             pending_day_minutes: VecDeque::new(),
             last_sequence: None,
-            symbols: SymbolRing::new(),
-            symbol_minute: None,
         };
         load_from_db(&mut s);
         Mutex::new(s)
@@ -177,9 +142,6 @@ fn load_from_db(state: &mut State) {
         e.mouse_clicks = row.mouse_clicks;
         e.mouse_moves = row.mouse_moves;
         e.scroll_events = row.scroll_events;
-        e.diversity = activity_score::quality_from_centi(row.diversity_centi);
-        e.timing = activity_score::quality_from_centi(row.timing_centi);
-        e.quality = activity_score::quality_from_centi(row.quality_centi);
     }
 
     KNOWN_APP_ICONS.get_or_init(|| {
@@ -308,16 +270,11 @@ fn ensure_today(state: &mut State) {
                 queue_session_for_persistence(state, previous_date.clone(), current);
             }
         }
-        let minutes: Vec<db::InputMinuteRow> = {
-            if let Some(minute) = state.symbol_minute {
-                apply_complexity(state, minute);
-            }
-            state
-                .input_minutes
-                .iter()
-                .map(|(minute, record)| minute_row(*minute, record))
-                .collect()
-        };
+        let minutes: Vec<db::InputMinuteRow> = state
+            .input_minutes
+            .iter()
+            .map(|(minute, record)| minute_row(*minute, record))
+            .collect();
         if !minutes.is_empty() {
             if state.pending_day_minutes.len() >= MAX_PENDING_DAYS {
                 state.pending_day_minutes.pop_front();
@@ -331,8 +288,6 @@ fn ensure_today(state: &mut State) {
         state.input_minutes.clear();
         state.dirty_minutes.clear();
         state.last_sequence = None;
-        state.symbols.clear();
-        state.symbol_minute = None;
     }
 }
 
@@ -370,7 +325,7 @@ fn queue_if_persistable(
 }
 
 fn hardware_end_ms(now: i64) -> i64 {
-    let last = crate::quality_live::last_accepted_hardware_ms();
+    let last = LAST_HARDWARE_MS.load(Ordering::Relaxed);
     if last > 0 {
         last.min(now)
     } else {
@@ -405,9 +360,6 @@ fn transition_snapshot(
         (Some(current), Some(next)) => {
             queue_if_persistable(state, date, current, close_at);
             state.current = Some(start_session(state, next, now, persist_sessions));
-            if persist_sessions {
-                push_symbol(state, ActionCategory::FocusSwitch, now, minute_of_day(now), None);
-            }
         }
         (Some(current), None) => {
             queue_if_persistable(state, date, current, close_at);
@@ -422,7 +374,7 @@ fn transition_snapshot(
 
 fn record_snapshot(observed: Option<ObservedWindow>) {
     let now = Utc::now().timestamp_millis();
-    let persist_sessions = crate::quality_live::should_persist_sessions();
+    let persist_sessions = hardware_recent();
     let snapshot = observed.map(|observed| {
         persist_app_icon_if_new(&observed.snapshot.app_id, observed.icon_data_url);
         observed.snapshot
@@ -434,10 +386,9 @@ fn record_snapshot(observed: Option<ObservedWindow>) {
     transition_snapshot(&mut state, now, snapshot, persist_sessions);
 }
 
+/// Record an accepted hardware event. Never called for injected/remote events.
 pub fn record_input_event(event: &InputMonitorEventDto) {
-    if crate::quality_live::skip_activity_persist() {
-        return;
-    }
+    LAST_HARDWARE_MS.store(event.timestamp, Ordering::Relaxed);
     let now = event.timestamp;
     let Ok(mut state) = state().lock() else {
         return;
@@ -449,14 +400,6 @@ pub fn record_input_event(event: &InputMonitorEventDto) {
     let is_sequence_continuation = input_sequence::is_continuation(state.last_sequence, event);
     if !has_current {
         return;
-    }
-
-    if let Some(category) = ActionCategory::from_event(event.kind, event.action) {
-        let pos = match (event.x, event.y) {
-            (Some(x), Some(y)) => Some((x, y)),
-            _ => None,
-        };
-        push_symbol(&mut state, category, now, minute, pos);
     }
 
     match (event.kind, event.action) {
@@ -541,9 +484,6 @@ pub fn get_input_minutes() -> Vec<AppInputMinuteDto> {
     };
 
     ensure_today(&mut state);
-    if let Some(minute) = state.symbol_minute {
-        apply_complexity(&mut state, minute);
-    }
 
     state
         .input_minutes
@@ -594,56 +534,18 @@ pub fn start_global_app_usage_monitor<R: Runtime>(_app: AppHandle<R>) {
     info!("started global app usage monitor");
 }
 
-/// Drop RAM + dirty minute buckets that overlap `[start_sec, end_sec)` so a
-/// skipped 30s slot never lands in SQLite as green/active time.
-pub(crate) fn drop_seconds(start_sec: usize, end_sec: usize) {
-    if start_sec >= end_sec {
-        return;
-    }
-    let Some(lock) = STATE.get() else {
-        return;
-    };
-    let Ok(mut state) = lock.lock() else {
-        return;
-    };
-    let start_min = (start_sec / 60) as u32;
-    let end_min = ((end_sec.saturating_sub(1)) / 60) as u32;
-    for minute in start_min..=end_min {
-        state.input_minutes.remove(&minute);
-        state.dirty_minutes.remove(&minute);
-    }
-}
-
-fn minute_overlaps_open_slot(minute: u32, open_start_sec: usize) -> bool {
-    let start = (minute as usize).saturating_mul(60);
-    let end = start.saturating_add(60);
-    start < open_start_sec.saturating_add(30) && end > open_start_sec
-}
-
 pub(crate) fn persist_checkpoint() {
     let Ok(_checkpoint_guard) = CHECKPOINT_LOCK.get_or_init(|| Mutex::new(())).lock() else {
         return;
     };
-    let persist_current = crate::quality_live::should_persist_sessions();
+    let persist_current = hardware_recent();
     let (current, changed_minutes, dirty_keys, date, mut pending_sessions, mut pending_day_minutes) = {
         let Ok(mut state) = state().lock() else {
             return;
         };
         ensure_today(&mut state);
-        if let Some(minute) = state.symbol_minute {
-            apply_complexity(&mut state, minute);
-        }
         let date = state.date_today.format("%Y-%m-%d").to_string();
-        let open_start = crate::quality_live::open_slot_start_sec();
-        let all_dirty: Vec<u32> = state.dirty_minutes.drain().collect();
-        let mut ready_keys = Vec::new();
-        for minute in all_dirty {
-            if minute_overlaps_open_slot(minute, open_start) {
-                state.dirty_minutes.insert(minute);
-            } else {
-                ready_keys.push(minute);
-            }
-        }
+        let ready_keys: Vec<u32> = state.dirty_minutes.drain().collect();
         let changed_minutes: Vec<db::InputMinuteRow> = ready_keys
             .iter()
             .filter_map(|minute| {
@@ -1091,8 +993,6 @@ mod tests {
             pending_sessions: VecDeque::new(),
             pending_day_minutes: VecDeque::new(),
             last_sequence: None,
-            symbols: SymbolRing::new(),
-            symbol_minute: None,
         };
 
         for id in 0..(MAX_PENDING_SESSIONS as u64 + 10) {

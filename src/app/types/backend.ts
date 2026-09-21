@@ -73,7 +73,7 @@ export interface LiveFeedEventDto {
   detail?: string | null;
 }
 
-/** 8 chronological rows (today-6 … today, tomorrow) × N hour slots; cell 0–100 = % of seconds ≥ persist min. */
+/** 8 chronological rows (today-6 … today, tomorrow) × N hour slots; cell 0–100 = % of minutes with recorded input. */
 export interface ActivityHeatmapDto {
   grid: number[][];
   slotSeconds?: number;
@@ -111,9 +111,6 @@ export interface AppInputMinuteDto {
   mouseClicks: number;
   mouseMoves: number;
   scrollEvents: number;
-  diversity?: number | null;
-  timing?: number | null;
-  quality?: number | null;
 }
 
 export interface ActivityAppUsageDto {
@@ -172,12 +169,4 @@ export interface SetApiServerSettingsDto {
   port?: number;
   bind?: string;
   hostname?: string;
-}
-
-export interface QualityLiveDto {
-  percent: number;
-  samples: number[];
-  windowMs: number;
-  skipActivityPersist: boolean;
-  secondOfDay?: number;
 }

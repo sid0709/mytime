@@ -91,7 +91,7 @@ pub struct LiveFeedEventDto {
 }
 
 /// 8 chronological rows (today-6 … today, tomorrow) × N hour slots.
-/// Intensity 0–100 = share of 1s samples ≥ persist min. Last row is always empty.
+/// Intensity 0–100 = share of minutes in the hour with recorded input. Last row is always empty.
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ActivityHeatmapDto {
@@ -139,9 +139,6 @@ pub struct AppInputMinuteDto {
     pub mouse_clicks: u32,
     pub mouse_moves: u32,
     pub scroll_events: u32,
-    pub diversity: Option<f32>,
-    pub timing: Option<f32>,
-    pub quality: Option<f32>,
 }
 
 #[derive(Clone, Serialize)]
