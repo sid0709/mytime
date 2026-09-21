@@ -9,7 +9,6 @@ use crate::{
         ApiServerSettingsDto, AppInputMinuteDto, DashboardSummaryDto, InputMonitorStatusDto,
         LiveFeedEventDto, LogEntryDto, SetApiServerSettingsDto,
     },
-    quality_live::{self, QualityLiveDto},
     services,
 };
 
@@ -190,21 +189,6 @@ pub fn set_api_server_settings(
     settings: SetApiServerSettingsDto,
 ) -> Result<ApiServerSettingsDto, String> {
     api_server::set_settings(app, settings)
-}
-
-#[tauri::command]
-pub fn get_quality_live() -> QualityLiveDto {
-    quality_live::snapshot()
-}
-
-#[tauri::command]
-pub fn get_quality_day() -> Vec<u8> {
-    quality_live::day_samples()
-}
-
-#[tauri::command]
-pub fn refresh_quality_live() -> QualityLiveDto {
-    quality_live::refresh()
 }
 
 /// Strip Gatekeeper quarantine after an in-app update replaces the macOS bundle.

@@ -19,9 +19,7 @@ import { ActivityTimeline } from "./components/ActivityTimeline";
 import { ActivityHeatmap } from "./components/ActivityHeatmap";
 import { LiveActivityFeed } from "./components/LiveActivityFeed";
 import { InputVisualizer } from "./components/InputVisualizer";
-import { LivePulseStrip } from "./components/LivePulseStrip";
 import { DetectionBoard } from "./components/DetectionBoard";
-import { FocusCorrelator } from "./components/FocusCorrelator";
 import { TimelineEditor } from "./components/timeline/TimelineEditor";
 import { SunburstChart } from "./components/reports/SunburstChart";
 import { ChangelogPage } from "./components/ChangelogPage";
@@ -35,12 +33,9 @@ import {
   toTimelineBlocks,
   toTimelineMarkers,
 } from "./activityAppUsage";
-import { useActivityInputMinutes } from "./hooks/useActivityInputMinutes";
 import { useActivityOverview } from "./hooks/useActivityOverview";
 import { useDashboardSummary } from "./hooks/useDashboardSummary";
 import { useAppUpdater } from "./hooks/useAppUpdater";
-import { useQualityDay } from "./hooks/useLiveWorkQuality";
-import { startQualityLiveStore } from "./qualityLiveStore";
 import type { DashboardSummaryDto } from "./types/backend";
 
 const PAGE_CONFIG: Record<string, { title: string; subtitle: string; icon: typeof LayoutDashboard; accentColor: string }> = {
@@ -122,10 +117,6 @@ export default function App() {
     isLoading: isDashboardSummaryLoading,
     error: dashboardSummaryError,
   } = useDashboardSummary(dashboardSummaryMode);
-
-  useEffect(() => {
-    startQualityLiveStore();
-  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("light", !isDark);
@@ -250,17 +241,9 @@ export default function App() {
 }
 
 function DashboardView({ summary }: { summary: DashboardSummaryDto | null }) {
-  const { inputMinutes } = useActivityInputMinutes(10_000);
-
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Live Pulse Strip */}
-      <LivePulseStrip
-        inputMinutes={inputMinutes}
-        sessionDuration={summary?.metrics.activeTimeToday.value}
-      />
-
-      <DetectionBoard inputMinutes={inputMinutes} />
+      <DetectionBoard />
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
@@ -315,7 +298,6 @@ function ActivityView({
     isLoading: isActivityOverviewLoading,
     error: activityOverviewError,
   } = useActivityOverview();
-  const qualityDay = useQualityDay();
 
   const appSummaries = activityOverview?.apps ?? [];
   const appIconDataUrlById = useMemo(
@@ -335,8 +317,8 @@ function ActivityView({
     [activityOverview?.timelineSessions, appIconDataUrlById],
   );
   const realActivityStatus = useMemo(
-    () => toActivityStatus(activityOverview?.inputMinutes ?? [], qualityDay),
-    [activityOverview?.inputMinutes, qualityDay],
+    () => toActivityStatus(activityOverview?.inputMinutes ?? []),
+    [activityOverview?.inputMinutes],
   );
   const realTimelineMarkers = useMemo(
     () => toTimelineMarkers(activityOverview?.inputMinutes ?? []),
@@ -373,7 +355,7 @@ function ActivityView({
           {activityOverviewError}
         </div>
       )}
-      <DetectionBoard inputMinutes={activityOverview?.inputMinutes} />
+      <DetectionBoard />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           title="Total Active Time"
@@ -414,14 +396,11 @@ function ActivityView({
           activityStatus={realActivityStatus}
           markers={realTimelineMarkers}
           apmData={realApmData}
-          qualityDay={qualityDay}
           appSummaries={appSummaries}
           appIconDataUrlById={appIconDataUrlById}
           isLoading={isActivityOverviewLoading}
         />
       </div>
-
-      <FocusCorrelator inputMinutes={activityOverview?.inputMinutes} />
 
       {/* App Usage Sunburst + Live Activity Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">

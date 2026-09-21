@@ -490,15 +490,17 @@ pub fn build_activity_timeline(
     })
 }
 
-/// Returns an 8-row grid of sidecar intensity 0–100.
+/// Returns an 8-row grid of hourly activity intensity 0–100.
 /// Rows are chronological: `today-6` … today, then tomorrow (always empty).
-/// Each column is `HEATMAP_SLOT_SECS` (1 hour). Seconds below `QUALITY_PERSIST_MIN` do not count.
+/// Each column is `HEATMAP_SLOT_SECS` (1 hour); the value is the share of minutes in that
+/// hour with recorded keyboard/mouse input.
+const HEATMAP_SLOT_SECS: usize = 3600;
+
 pub fn build_activity_heatmap() -> ActivityHeatmapDto {
     let today = Local::now().date_naive();
     let start = today - Duration::days(6);
     let today_live_minutes: Vec<AppInputMinuteDto> = app_usage_monitor::get_input_minutes();
-    let threshold = crate::quality_live::persist_threshold_pct();
-    let slot_secs = crate::quality_live::HEATMAP_SLOT_SECS;
+    let slot_secs = HEATMAP_SLOT_SECS;
     let slots = 86_400 / slot_secs;
     let mut grid = vec![vec![0u8; slots]; 8];
     for offset in 0..8 {
@@ -506,11 +508,8 @@ pub fn build_activity_heatmap() -> ActivityHeatmapDto {
         if date > today {
             continue;
         }
-        let sidecar = crate::quality_live::samples_for_date(date);
-        let mut row = crate::quality_live::heatmap_slots(&sidecar, threshold, slot_secs);
         let mins = input_minutes_for_timeline_date(date, today, &today_live_minutes);
-        fill_empty_heatmap_slots(&mut row, &sidecar, &mins, slot_secs);
-        grid[offset] = row;
+        grid[offset] = minute_based_heatmap_row(&mins, slot_secs);
     }
     ActivityHeatmapDto {
         grid,
@@ -518,15 +517,12 @@ pub fn build_activity_heatmap() -> ActivityHeatmapDto {
     }
 }
 
-fn fill_empty_heatmap_slots(
-    row: &mut [u8],
-    sidecar: &[u8],
-    minutes: &[AppInputMinuteDto],
-    slot_secs: usize,
-) {
+fn minute_based_heatmap_row(minutes: &[AppInputMinuteDto], slot_secs: usize) -> Vec<u8> {
     if slot_secs == 0 {
-        return;
+        return Vec::new();
     }
+    let slots = 86_400 / slot_secs;
+    let mut row = vec![0u8; slots];
     let mut active_minutes = std::collections::HashSet::new();
     for bucket in minutes {
         if bucket.key_presses > 0
@@ -539,23 +535,13 @@ fn fill_empty_heatmap_slots(
     }
     let minutes_per_slot = (slot_secs / 60).max(1) as u32;
     for (slot, cell) in row.iter_mut().enumerate() {
-        if *cell > 0 {
-            continue;
-        }
-        let start_sec = slot * slot_secs;
-        let end_sec = (start_sec + slot_secs).min(sidecar.len());
-        let has_sidecar = sidecar
-            .get(start_sec..end_sec)
-            .is_some_and(|slice| slice.iter().any(|sample| *sample > 0));
-        if has_sidecar {
-            continue;
-        }
-        let start_min = (start_sec / 60) as u32;
+        let start_min = ((slot * slot_secs) / 60) as u32;
         let counted = (0..minutes_per_slot)
             .filter(|offset| active_minutes.contains(&(start_min + offset)))
             .count() as u32;
         *cell = ((counted * 100) / minutes_per_slot) as u8;
     }
+    row
 }
 
 #[derive(Default)]
@@ -566,11 +552,13 @@ struct TodayInputAggregate {
 }
 
 /// Same formula as the frontend `bucketIntensity`; cap matches standard APM scale (250).
-fn bucket_activity_score(
-    bucket: &AppInputMinuteDto,
-    qualities: &std::collections::BTreeMap<u32, f64>,
-) -> u32 {
-    activity_score::bucket_activity_score_smoothed(bucket, qualities)
+fn bucket_activity_score(bucket: &AppInputMinuteDto) -> u32 {
+    activity_score::effective_score(
+        bucket.key_presses,
+        bucket.mouse_clicks,
+        bucket.scroll_events,
+        bucket.mouse_moves,
+    )
 }
 
 fn dto_from_minute_row(row: db::InputMinuteRow) -> AppInputMinuteDto {
@@ -580,9 +568,6 @@ fn dto_from_minute_row(row: db::InputMinuteRow) -> AppInputMinuteDto {
         mouse_clicks: row.mouse_clicks,
         mouse_moves: row.mouse_moves,
         scroll_events: row.scroll_events,
-        diversity: activity_score::quality_from_centi(row.diversity_centi),
-        timing: activity_score::quality_from_centi(row.timing_centi),
-        quality: activity_score::quality_from_centi(row.quality_centi),
     }
 }
 
@@ -610,7 +595,6 @@ fn input_minutes_for_timeline_date(
 fn aggregate_today_input(input_minutes: &[AppInputMinuteDto]) -> TodayInputAggregate {
     let mut aggregate = TodayInputAggregate::default();
     let mut hourly_scores = [0u32; 24];
-    let qualities = activity_score::qualities_by_minute(input_minutes);
 
     for bucket in input_minutes {
         let hour = (bucket.minute_of_day / 60).min(23) as usize;
@@ -625,8 +609,7 @@ fn aggregate_today_input(input_minutes: &[AppInputMinuteDto]) -> TodayInputAggre
                 aggregate.hourly_active_minutes[hour].saturating_add(1);
         }
 
-        hourly_scores[hour] =
-            hourly_scores[hour].saturating_add(bucket_activity_score(bucket, &qualities));
+        hourly_scores[hour] = hourly_scores[hour].saturating_add(bucket_activity_score(bucket));
     }
 
     for (hour, score) in hourly_scores.into_iter().enumerate() {

@@ -10,14 +10,12 @@ import {
 } from "./timeline-data";
 import { AppIcon } from "./AppIcon";
 import { STANDARD_APM_MAX } from "../../constants/apm";
-import { QUALITY_PERSIST_MIN } from "../../constants/activityScore";
 
 interface TimelineTracksProps {
   blocks: TimelineBlock[];
   apmData: APMDataPoint[];
   markers: TimelineMarker[];
   activityStatus: ActivityStatus[];
-  qualityDay?: ArrayLike<number>;
   zoom: number;
   onZoomChange: (zoom: number) => void;
   visibleTracks: Record<"status" | "windows" | "apm", boolean>;
@@ -100,7 +98,6 @@ export function TimelineTracks({
   apmData,
   markers,
   activityStatus,
-  qualityDay,
   zoom,
   onZoomChange,
   visibleTracks,
@@ -170,30 +167,6 @@ export function TimelineTracks({
     (startMin: number, endMin: number) => (endMin - startMin) * pxPerMin,
     [pxPerMin]
   );
-
-  const sidecarInputBars = useMemo(() => {
-    if (!qualityDay || qualityDay.length < 86_400) return null;
-    const threshold = Math.round(QUALITY_PERSIST_MIN * 100);
-    const secondsPerBar = Math.max(1, Math.round(60 / Math.max(pxPerMin, 0.05)));
-    const startSec = Math.max(0, Math.floor(viewStart * 60));
-    const endSec = Math.min(86_400, Math.ceil(viewEnd * 60));
-    const bars: { startMin: number; widthMin: number; frac: number }[] = [];
-    for (let sec = startSec; sec < endSec; sec += secondsPerBar) {
-      const span = Math.min(secondsPerBar, endSec - sec);
-      let high = 0;
-      for (let i = 0; i < span; i += 1) {
-        if ((qualityDay[sec + i] ?? 0) >= threshold) high += 1;
-      }
-      const frac = high / span;
-      if (frac <= 0) continue;
-      bars.push({
-        startMin: sec / 60,
-        widthMin: span / 60,
-        frac,
-      });
-    }
-    return bars;
-  }, [qualityDay, pxPerMin, viewStart, viewEnd]);
 
   // Time ruler ticks within viewport
   const hourMarks = useMemo(() => {
@@ -543,55 +516,35 @@ export function TimelineTracks({
             </div>
           )}
 
-          {/* ====== TRACK 2: Input intensity (sidecar 1s quality, ≥25%) ====== */}
+          {/* ====== TRACK 2: Input intensity (per-minute volume) ====== */}
           {visibleTracks.apm && (
             <div className="relative h-7 border-b border-border">
               <div className="absolute inset-0 flex items-end">
-                {sidecarInputBars
-                  ? sidecarInputBars.map((bar, index) => {
-                      const x = getX(bar.startMin);
-                      const w = Math.max(getWidth(bar.startMin, bar.startMin + bar.widthMin), 1);
-                      const h = Math.max(bar.frac * 24, 1);
-                      return (
-                        <div
-                          key={`q-${index}`}
-                          className="absolute bottom-0"
-                          title={`${Math.round(bar.frac * 100)}% of this slice ≥ 25% quality`}
-                          style={{
-                            left: x,
-                            width: w,
-                            height: h,
-                            backgroundColor: getAPMColor(bar.frac * STANDARD_APM_MAX),
-                            opacity: 0.5 + bar.frac * 0.5,
-                          }}
-                        />
-                      );
-                    })
-                  : apmData
-                      .filter((d) => d.minute >= Math.floor(viewStart) - 1 && d.minute <= Math.ceil(viewEnd) + 1)
-                      .map((d) => {
-                        const x = getX(d.minute);
-                        const w = Math.max(pxPerMin, 1);
-                        const h = Math.max((d.apm / STANDARD_APM_MAX) * 24, 1);
-                        return (
-                          <div
-                            key={`apm-${d.minute}`}
-                            className="absolute bottom-0"
-                            title={
-                              d.volume != null
-                                ? `volume ${d.volume} · quality ${((d.quality ?? 1) * 100).toFixed(0)}% · effective ${Math.round(d.apm)}`
-                                : undefined
-                            }
-                            style={{
-                              left: x,
-                              width: w,
-                              height: h,
-                              backgroundColor: getAPMColor(d.apm),
-                              opacity: 0.5 + (d.apm / STANDARD_APM_MAX) * 0.5,
-                            }}
-                          />
-                        );
-                      })}
+                {apmData
+                  .filter((d) => d.minute >= Math.floor(viewStart) - 1 && d.minute <= Math.ceil(viewEnd) + 1)
+                  .map((d) => {
+                    const x = getX(d.minute);
+                    const w = Math.max(pxPerMin, 1);
+                    const h = Math.max((d.apm / STANDARD_APM_MAX) * 24, 1);
+                    return (
+                      <div
+                        key={`apm-${d.minute}`}
+                        className="absolute bottom-0"
+                        title={
+                          d.volume != null
+                            ? `volume ${d.volume} · effective ${Math.round(d.apm)}`
+                            : undefined
+                        }
+                        style={{
+                          left: x,
+                          width: w,
+                          height: h,
+                          backgroundColor: getAPMColor(d.apm),
+                          opacity: 0.5 + (d.apm / STANDARD_APM_MAX) * 0.5,
+                        }}
+                      />
+                    );
+                  })}
               </div>
               <div className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground/50 pointer-events-none">
                 INPUT

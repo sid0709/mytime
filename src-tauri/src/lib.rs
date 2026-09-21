@@ -7,13 +7,11 @@ mod app_usage_monitor;
 mod config;
 mod db;
 mod input_aggregator;
-mod input_complexity;
 mod input_monitor;
 mod input_sequence;
 mod ipc;
 mod macos_quarantine;
 mod models;
-mod quality_live;
 mod services;
 mod startup;
 
@@ -122,7 +120,6 @@ pub fn run() {
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
             let paths = AppPaths::resolve(&app.handle())?;
-            crate::activity_score::load_quality_env();
             init_logging(&paths.log_dir)?;
 
             info!(
@@ -162,8 +159,6 @@ pub fn run() {
             }
 
             // Start background collectors.
-            let data_dir = app.state::<AppState>().paths().data_dir.clone();
-            quality_live::start(app.handle().clone(), &data_dir);
             app_usage_monitor::start_global_app_usage_monitor(app.handle().clone());
             input_monitor::start_global_input_monitor(app.handle().clone());
 
@@ -197,9 +192,6 @@ pub fn run() {
             ipc::get_activity_input_minutes,
             ipc::get_activity_heatmap,
             ipc::get_activity_timeline,
-            ipc::get_quality_live,
-            ipc::get_quality_day,
-            ipc::refresh_quality_live,
             ipc::get_sunburst_settings,
             ipc::save_sunburst_settings,
             ipc::get_api_server_settings,
@@ -277,7 +269,6 @@ fn setup_tray(app: &mut tauri::App) -> Result<(), Box<dyn Error>> {
         .on_menu_event(move |app, event| {
             if event.id() == &quit_id {
                 app_usage_monitor::persist_checkpoint();
-                quality_live::flush();
                 app.exit(0);
             }
         })

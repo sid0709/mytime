@@ -1,6 +1,5 @@
 /**
- * Standard ceiling for input-intensity scoring on the timeline heatmap
- * (volume × quality). Density charts use 0–100% instead.
+ * Standard ceiling for input-intensity scoring (volume-based) on the timeline heatmap.
  */
 export const STANDARD_APM_MAX = 250;
 

@@ -10,7 +10,7 @@ import type {
   TimelineBlock,
   TimelineMarker,
 } from "./components/timeline/timeline-data";
-import { bucketIntensity, QUALITY_PERSIST_MIN, qualitiesByMinute, volumeScore } from "./constants/activityScore";
+import { bucketIntensity, volumeScore } from "./constants/activityScore";
 
 const DAY_START_MIN = 0;
 const DAY_END_MIN = 24 * 60;
@@ -185,20 +185,10 @@ export function toSunburstApps(apps: AppUsageSummaryDto[]): AppEntry[] {
   });
 }
 
-function firstSidecarSecond(qualityDay: ArrayLike<number>): number | null {
-  const n = Math.min(qualityDay.length, 86_400);
-  for (let i = 0; i < n; i += 1) {
-    if ((qualityDay[i] ?? 0) > 0) return i;
-  }
-  return null;
-}
-
 export function toActivityStatus(
   inputMinutes: AppInputMinuteDto[],
-  qualityDay?: ArrayLike<number>,
 ): ActivityStatus[] {
-  const hasDay = qualityDay != null && qualityDay.length >= 86_400;
-  if (!hasDay && inputMinutes.length === 0) {
+  if (inputMinutes.length === 0) {
     return [{ startMin: DAY_START_MIN, endMin: DAY_END_MIN, status: "shutdown" }];
   }
 
@@ -214,59 +204,38 @@ export function toActivityStatus(
       .map((bucket) => bucket.minuteOfDay),
   );
 
-  const thresholdPct = Math.round(QUALITY_PERSIST_MIN * 100);
-  const sidecarFromSec = hasDay && qualityDay ? firstSidecarSecond(qualityDay) : null;
-  const totalSec = (DAY_END_MIN - DAY_START_MIN) * 60;
-
-  const hasSignal = (sec: number): boolean => {
-    if (presence.has(Math.floor(sec / 60))) return true;
-    return hasDay && qualityDay ? (qualityDay[sec] ?? 0) > 0 : false;
-  };
-
-  const statusAt = (sec: number): ActivityStatus["status"] => {
-    if (sidecarFromSec != null && sec >= sidecarFromSec && qualityDay) {
-      return (qualityDay[sec] ?? 0) >= thresholdPct ? "active" : "inactive";
-    }
-    return presence.has(Math.floor(sec / 60)) ? "active" : "inactive";
-  };
-
-  let firstSec = -1;
-  let lastSec = -1;
-  for (let sec = 0; sec < totalSec; sec += 1) {
-    if (hasSignal(sec)) {
-      if (firstSec < 0) firstSec = sec;
-      lastSec = sec;
-    }
+  let firstMin = -1;
+  let lastMin = -1;
+  for (const minute of presence) {
+    if (firstMin < 0 || minute < firstMin) firstMin = minute;
+    if (minute > lastMin) lastMin = minute;
   }
 
-  if (firstSec < 0) {
+  if (firstMin < 0) {
     return [{ startMin: DAY_START_MIN, endMin: DAY_END_MIN, status: "shutdown" }];
   }
 
-  const statuses: ActivityStatus[] = [];
-  let segmentStart = 0;
-  let current: ActivityStatus["status"] =
-    0 < firstSec ? "shutdown" : statusAt(0);
+  const statusAt = (minute: number): ActivityStatus["status"] => {
+    if (minute < firstMin || minute > lastMin) return "shutdown";
+    return presence.has(minute) ? "active" : "inactive";
+  };
 
-  for (let sec = 1; sec <= totalSec; sec += 1) {
-    const next: ActivityStatus["status"] =
-      sec < firstSec || sec > lastSec ? "shutdown" : statusAt(sec);
-    if (next !== current) {
+  const statuses: ActivityStatus[] = [];
+  let segmentStart = DAY_START_MIN;
+  let current = statusAt(DAY_START_MIN);
+
+  for (let minute = DAY_START_MIN + 1; minute <= DAY_END_MIN; minute += 1) {
+    const next = minute < DAY_END_MIN ? statusAt(minute) : current;
+    if (next !== current || minute === DAY_END_MIN) {
       statuses.push({
-        startMin: segmentStart / 60,
-        endMin: sec / 60,
+        startMin: segmentStart,
+        endMin: minute,
         status: current,
       });
-      segmentStart = sec;
+      segmentStart = minute;
       current = next;
     }
   }
-
-  statuses.push({
-    startMin: segmentStart / 60,
-    endMin: DAY_END_MIN,
-    status: current,
-  });
 
   return statuses.filter((seg) => seg.endMin > seg.startMin);
 }
@@ -295,7 +264,6 @@ export function toTimelineMarkers(inputMinutes: AppInputMinuteDto[]): TimelineMa
 
 export function toApmData(inputMinutes: AppInputMinuteDto[]): APMDataPoint[] {
   const byMinute = new Map(inputMinutes.map((bucket) => [bucket.minuteOfDay, bucket]));
-  const qualities = qualitiesByMinute(inputMinutes);
   return Array.from({ length: DAY_END_MIN - DAY_START_MIN }, (_, index) => {
     const minute = DAY_START_MIN + index;
     const bucket = byMinute.get(minute);
@@ -304,9 +272,8 @@ export function toApmData(inputMinutes: AppInputMinuteDto[]): APMDataPoint[] {
     }
     return {
       minute,
-      apm: bucketIntensity(bucket, qualities),
+      apm: bucketIntensity(bucket),
       volume: volumeScore(bucket),
-      quality: bucket.quality ?? 1,
       type: bucketType(bucket),
     };
   });

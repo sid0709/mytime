@@ -113,7 +113,7 @@ export function ActivityHeatmap() {
           {hoveredCell.label} {formatSlotLabel(hoveredCell.slotIndex, slotSecs)}
         </p>
         <p className="text-xs text-muted-foreground">
-          High-quality seconds: {hoveredCell.value}%
+          Active minutes: {hoveredCell.value}%
         </p>
       </div>,
       document.body,
@@ -134,7 +134,7 @@ export function ActivityHeatmap() {
         <div>
           <h3 className="text-foreground">Activity Heatmap</h3>
           <p className="text-muted-foreground text-xs mt-1">
-            Last 7 days plus tomorrow: % of seconds at or above 25% work quality
+            Last 7 days plus tomorrow: % of minutes with recorded input, per hour
           </p>
         </div>
         <div className="flex items-center gap-1 text-xs text-muted-foreground">

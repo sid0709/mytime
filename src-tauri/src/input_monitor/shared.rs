@@ -116,11 +116,8 @@ pub(crate) fn start_emitter<R: Runtime>(app: AppHandle<R>) {
         loop {
             match rx.recv_timeout(Duration::from_millis(BATCH_FLUSH_MS)) {
                 Ok(event) => {
-                    crate::quality_live::note_event(&event);
                     crate::input_aggregator::record(&event);
-                    if !crate::quality_live::skip_activity_persist() {
-                        crate::app_usage_monitor::record_input_event(&event);
-                    }
+                    crate::app_usage_monitor::record_input_event(&event);
                     batch.push(event);
                     if batch.len() >= MAX_BATCH {
                         emit_batch_if_window_visible(&app, std::mem::take(&mut batch));
